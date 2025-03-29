@@ -1,0 +1,13 @@
+{
+    "board_id": 56,
+    "magic": "AMOVLABv1",
+    "description": "Firmware for the AMOVLABicf6 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "AMOVLABicf6",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1966080,
+    "git_identity": "",
+    "board_revision": 0
+}

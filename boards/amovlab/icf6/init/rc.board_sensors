@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# PX4 FMUv6C specific board sensors init
+#------------------------------------------------------------------------------
+board_adc start
+
+# Internal SPI bus BMI055 accel/gyro
+# bmi088 -A -R 0 -s start
+# bmi088 -G -R 0 -s start
+
+# Internal SPI bus ICM42688p
+icm42688p -R 2 -s start
+# icm42670p -R 2 -s start
+
+# Internal barometer on I2C4 (The same bus is also exposed externally, and therefore marked as external)
+# ms5611 -X -b 1 -a 0x76 start
+ms5611 -X -b 4 -a 0x77 start
+# ms5611 -s start
+
+# bmm150 -R 26 -s start
+qmc5883l -X -b 4 -a 0x0d -R 20 start
+
+# bmp388 -s start
+# bmp388 -X -b 1 start
+
+# Internal compass on IMU I2C4 (The same bus is also exposed externally, and therefore marked as external)
+#ist8310 -X -b 4 -a 0xc  start
+
+# External compass on GPS/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
+#ist8310 -X -b 1 -R 10 start
+
+# rgbled_aw2013 start -X -b 4
+rgbled_aw2013 -X -b 4 start
+
+# lc303 start #-d /dev/ttyS1
+
+gps start -d /dev/ttyS0 -b 230400 -p nmea
