@@ -67,7 +67,7 @@
 
 #define STM32_BOARD_XTAL        8000000ul
 
-#define STM32_HSI_FREQUENCY     16000000ul
+#define STM32_HSI_FREQUENCY     25000000ul
 #define STM32_LSI_FREQUENCY     32000
 #define STM32_HSE_FREQUENCY     STM32_BOARD_XTAL
 #define STM32_LSE_FREQUENCY     32768
@@ -244,7 +244,7 @@
 
 /* USB 1 and 2 clock source */
 
-#define STM32_RCC_D2CCIP2R_USBSRC    RCC_D2CCIP2R_USBSEL_PLL3
+#define STM32_RCC_D2CCIP2R_USBSRC    RCC_D2CCIP2R_USBSEL_HSI48
 
 /* ADC 1 2 3 clock source */
 
@@ -365,16 +365,19 @@
 #define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7  */
 #define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6  */
 
+/* USB
+ *
+ *      OTG_FS_DM                           PA11
+ *      OTG_FS_DP                           PA12
+ *      VBUS                                PA8
+ */
+
 /* SPI
  *
 
  */
 
 #define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
-
-#define GPIO_SPI2_MISO   GPIO_SPI2_MISO_2               /* PC2  */
-#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_3               /* PC3 */
-#define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_5) /* PD3  */
 
 #define GPIO_SPI3_MISO   GPIO_SPI3_MISO_1               /* PB4  */
 #define GPIO_SPI3_MOSI   GPIO_SPI3_MOSI_1               /* PD6 */

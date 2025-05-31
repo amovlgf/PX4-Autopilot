@@ -37,12 +37,9 @@
 
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI2, {
+	initSPIBus(SPI::Bus::SPI3, {
 		initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortD, GPIO::Pin5}, SPI::DRDY{GPIO::PortC, GPIO::Pin15}),
 		initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortD, GPIO::Pin4}, SPI::DRDY{GPIO::PortC, GPIO::Pin14}),
-	}),
-	initSPIBus(SPI::Bus::SPI3, {
-		initSPIDevice(DRV_IMU_DEVTYPE_BMI270, SPI::CS{GPIO::PortA, GPIO::Pin15}, SPI::DRDY{GPIO::PortB, GPIO::Pin7}),
 	}),
 };
 

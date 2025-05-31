@@ -105,12 +105,15 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   6
-#define DIRECT_INPUT_TIMER_CHANNELS  6
 
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 #define GPIO_TONE_ALARM_IDLE    /* PD11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN11)
 #define GPIO_TONE_ALARM_GPIO    /* PD11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN11)
+
+/* Power supply control and monitoring GPIOs */
+#define GPIO_nPOWER_IN_C                /* PE15  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN15)
+#define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
 
 /* USB OTG FS
  *
@@ -126,7 +129,7 @@
 
 
 /* RC Serial port */
-#define RC_SERIAL_PORT          "/dev/ttyS5"
+#define RC_SERIAL_PORT          "/dev/ttyS3"
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 // #define GPIO_I2C2_DRDY1_SPL06      /* PD0  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN0)
@@ -135,6 +138,14 @@
 /* SD Card */
 #define SDIO_SLOTNO             0  /* Only one slot */
 #define SDIO_MINOR              0
+
+/* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
+ * this board support the ADC system_power interface, and therefore
+ * provides the true logic GPIO BOARD_ADC_xxxx macros.
+ */
+#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
+#define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
+
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
