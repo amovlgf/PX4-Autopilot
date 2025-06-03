@@ -373,8 +373,7 @@
  */
 
 /* SPI
- *
-
+ * SPI2 is FRAM
  */
 
 #define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
@@ -382,6 +381,10 @@
 #define GPIO_SPI3_MISO   GPIO_SPI3_MISO_1               /* PB4  */
 #define GPIO_SPI3_MOSI   GPIO_SPI3_MOSI_1               /* PD6 */
 #define GPIO_SPI3_SCK    ADJ_SLEW_RATE(GPIO_SPI3_SCK_1) /* PB3  */
+
+#define GPIO_SPI2_MISO   GPIO_SPI2_MISO_2               /* PC2  */
+#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_3               /* PC3  */
+#define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_5) /* PD3  */
 
 /* I2C
  *
