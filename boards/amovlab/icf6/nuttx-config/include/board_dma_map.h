@@ -45,8 +45,8 @@
 //#define DMAMAP_UART4_RX  DMAMAP_DMA12_UART4RX_0     /* 5 DMA1:63 GPS1 */
 //#define DMAMAP_UART4_TX  DMAMAP_DMA12_UART4TX_0     /* 6 DMA1:64 GPS1 */
 
-#define DMAMAP_USART6_RX  DMAMAP_DMA12_USART6RX_0   /* 7 DMA1:71 PX4IO */
-#define DMAMAP_USART6_TX  DMAMAP_DMA12_USART6TX_0   /* 8 DMA1:72 PX4IO */
+// #define DMAMAP_USART6_RX  DMAMAP_DMA12_USART6RX_0   /* 7 DMA1:71 PX4IO */
+// #define DMAMAP_USART6_TX  DMAMAP_DMA12_USART6TX_0   /* 8 DMA1:72 PX4IO */
 
 // DMAMUX2 Using at most 8 Channels on DMA2 --------   Assigned
 //                                                     V

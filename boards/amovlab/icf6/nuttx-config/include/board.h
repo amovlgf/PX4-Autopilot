@@ -365,7 +365,7 @@
 /*
 
 Uart	Port	Device
-		
+
 USART2	TELEM1	/dev/ttyS0
 USART3	TELEM2	/dev/ttyS1
 UART4	GPS1	/dev/ttyS2
@@ -387,8 +387,8 @@ UART8	DEBUG	/dev/ttyS5
 #define GPIO_UART4_RX   GPIO_UART4_RX_4    /* PC11 */
 #define GPIO_UART4_TX   GPIO_UART4_TX_4    /* PC10 */
 
-#define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7 */
-#define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6  */
+// #define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7 */
+// #define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6  */
 
 #define GPIO_UART7_RX    GPIO_UART7_RX_3    /* PE7  */
 #define GPIO_UART7_TX    GPIO_UART7_TX_3    /* PE8  */
@@ -459,10 +459,10 @@ UART8	DEBUG	/dev/ttyS5
 
  #define GPIO_SDMMC2_CK   GPIO_SDMMC2_CK_2    	/* PC1 */
  #define GPIO_SDMMC2_CMD  GPIO_SDMMC2_CMD_1 	/* PD7  */
- //#define GPIO_SDMMC2_D0   GPIO_SDMMC2_D0    	/* PB14  */
- //#define GPIO_SDMMC2_D1   GPIO_SDMMC2_D1    	/* PB15  */
+ //	 GPIO_SDMMC2_D0   GPIO_SDMMC2_D0    	/* PB14  */
+ //	 GPIO_SDMMC2_D1   GPIO_SDMMC2_D1    	/* PB15  */
  #define GPIO_SDMMC2_D2   GPIO_SDMMC2_D2_2    	/* PB3 */
- //#define GPIO_SDMMC2_D3   GPIO_SDMMC2_D3    	/* PB4 */
+ //	 GPIO_SDMMC2_D3   GPIO_SDMMC2_D3    	/* PB4 */
 
 /* USB
  *

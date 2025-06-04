@@ -46,29 +46,11 @@
 #include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
-
 #include <stm32_gpio.h>
 
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
-
-#undef TRACE_PINS
-
-/* PX4IO connection configuration */
-
-#define BOARD_USES_PX4IO_VERSION       2
-#define PX4IO_SERIAL_DEVICE            "/dev/ttyS3"
-#define PX4IO_SERIAL_TX_GPIO           GPIO_USART6_TX
-#define PX4IO_SERIAL_RX_GPIO           GPIO_USART6_RX
-#define PX4IO_SERIAL_BASE              STM32_USART6_BASE
-#define PX4IO_SERIAL_VECTOR            STM32_IRQ_USART6
-#define PX4IO_SERIAL_TX_DMAMAP         DMAMAP_USART6_TX
-#define PX4IO_SERIAL_RX_DMAMAP         DMAMAP_USART6_RX
-#define PX4IO_SERIAL_RCC_REG           STM32_RCC_APB2ENR
-#define PX4IO_SERIAL_RCC_EN            RCC_APB2ENR_USART6EN
-#define PX4IO_SERIAL_CLOCK             STM32_PCLK2_FREQUENCY
-#define PX4IO_SERIAL_BITRATE           1500000               /* 1.5Mbps -> max rate for IO */
 
 /* PX4FMU GPIOs ***********************************************************************************/
 
@@ -76,6 +58,8 @@
 /* LEDs are driven with push pull Anodes to 3.3V */
 
 #define GPIO_nLED_BLUE       /* PE12 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN12)
+#define GPIO_nLED_RED        /* PC4  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN4)
+
 
 /*
  * ADC channels
@@ -91,25 +75,28 @@
 /* N.B. there is no offset mapping needed for ADC3 because */
 #define ADC3_CH(n)                  (n)
 
-/* We are only use ADC3 for REV/VER. */
-
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
 #define ADC_V5_V_FULL_SCALE             (3.3f)
 #define PX4_ADC_GPIO  \
 	/* PA4  */  GPIO_ADC12_INP18,   \
 	/* PB1  */  GPIO_ADC12_INP5,	\
-	/* PA1  */  GPIO_ADC1_INN16, 	\
-	/* PA2  */  GPIO_ADC12_INP14  	\
+	/* PA1  */  GPIO_ADC1_INP17, 	\
+	/* PA2  */  GPIO_ADC12_INP14,  	\
+	/* PA0  */  GPIO_ADC1_INN16
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 #define ADC_BATTERY_CURRENT_CHANNEL	  /* PA4 */  ADC1_CH(18)
 #define ADC_BATTERY_VOLTAGE_CHANNEL	  /* PB1 */  ADC1_CH(5)
 #define ADC_HW_REV_SENSE_CHANNEL          /* PA2 */  ADC1_CH(14)
-#define ADC_HW_VER_SENSE_CHANNEL          /* PA1 */  ADC1_CH(16)
+#define ADC_HW_VER_SENSE_CHANNEL          /* PA1 */  ADC1_CH(17)
+#define ADC_RSSI_IN_CHANNEL          	  /* PA0 */  ADC1_CH(16)
 
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY_CURRENT_CHANNEL) | \
-	 (1 << ADC_BATTERY_VOLTAGE_CHANNEL))
+	 (1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
+	 (1 << ADC_HW_REV_SENSE_CHANNEL)    | \
+	 (1 << ADC_HW_VER_SENSE_CHANNEL)    | \
+	 (1 << ADC_RSSI_IN_CHANNEL))
 
 #define HW_REV_VER_ADC_BASE STM32_ADC3_BASE
 
@@ -134,23 +121,14 @@
 
 /* PWM	*/
 #define DIRECT_PWM_OUTPUT_CHANNELS   10
-
-/* Power supply control and monitoring GPIOs */
-
-// no define
-
-/* Define True logic Power Control in arch agnostic form */
-
-// no define
+#define BOARD_NUM_IO_TIMERS           3
 
 /* Tone alarm output */
 
 #define TONE_ALARM_TIMER        2  /* Timer 2 */
 #define TONE_ALARM_CHANNEL      1  /* PA15 GPIO_TIM2_CH1OUT_2 */
 
-#define GPIO_BUZZER_1           /* PA15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
-
-#define GPIO_TONE_ALARM_IDLE    GPIO_BUZZER_1
+#define GPIO_TONE_ALARM_IDLE    /* PA15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
 #define GPIO_TONE_ALARM         GPIO_TIM2_CH1OUT_2
 
 /* USB OTG FS
@@ -161,10 +139,33 @@
 
 /* High-resolution timer */
 #define HRT_TIMER               8  /* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
+#define HRT_TIMER_CHANNEL       2  /* use capture/compare channel 3 */
 
-/* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 3 */
-// no define
+#define HRT_PPM_CHANNEL         /* T8C3 */  3  /* use capture/compare channel 1 */
+#define GPIO_PPM_IN             /* PC8 T8C3 */ GPIO_TIM8_CH3IN_1
+
+/* RC Serial port */
+
+#define RC_SERIAL_PORT                     "/dev/ttyS3"
+#define RC_SERIAL_SINGLEWIRE
+
+/* PWM input driver. Use FMU AUX5 pins attached to timer3 channel 2 */
+#define PWMIN_TIMER                       3
+#define PWMIN_TIMER_CHANNEL    /* T3C2 */ 2
+#define GPIO_PWM_IN            /* PA7  */ GPIO_TIM3_CH2IN_1
+
+/**
+ * GPIO PPM_IN on PC8 T8C3
+ * SPEKTRUM_RX (it's TX or RX in Bind) on UART8 PE0
+ *   Inversion is possible in the UART and can drive GPIO_PPM_IN as an output
+ */
+#define GPIO_PPM_IN_AS_OUT           (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN8)
+#define SPEKTRUM_RX_AS_GPIO_OUTPUT() px4_arch_configgpio(GPIO_PPM_IN_AS_OUT)
+#define SPEKTRUM_RX_AS_UART()       /* Can be left as uart */
+#define SPEKTRUM_OUT(_one_true)      px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
+
+/* RSSI_IN */
+#define GPIO_RSSI_IN            /* PA0  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN0)
 
 #define SDIO_SLOTNO                    0  /* Only one slot */
 #define SDIO_MINOR                     0
@@ -186,10 +187,7 @@
  * provides the true logic GPIO BOARD_ADC_xxxx macros.
  */
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
-#define BOARD_ADC_USB_VALID 	(px4_arch_gpioread(GPIO_OTGFS_VBUS))
-
-/* never powers off the Servo rail */
-//	no define
+#define BOARD_ADC_USB_VALID 	BOARD_ADC_USB_CONNECTED
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
@@ -205,6 +203,7 @@
 		GPIO_CAN1_RX,                     \
 		GPIO_HEATER_OUTPUT,               \
 		GPIO_TONE_ALARM_IDLE,             \
+		GPIO_RSSI_IN,			  \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
@@ -212,9 +211,6 @@
 #define PX4_I2C_BUS_MTD      4,5
 
 #define BOARD_OVERRIDE_I2C_DEVICE_EXTERNAL
-
-
-#define BOARD_NUM_IO_TIMERS 5
 
 __BEGIN_DECLS
 
