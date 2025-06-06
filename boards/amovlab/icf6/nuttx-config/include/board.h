@@ -369,7 +369,7 @@ Uart	Port	Device
 USART2	TELEM1	/dev/ttyS0
 USART3	TELEM2	/dev/ttyS1
 UART4	GPS1	/dev/ttyS2
-USART6	FX4_IO	/dev/ttyS3
+USART6	RC	/dev/ttyS3
 UART7	GPS2	/dev/ttyS4
 UART8	DEBUG	/dev/ttyS5
 
@@ -407,7 +407,7 @@ UART8	DEBUG	/dev/ttyS5
 
 /* SPI
  * SPI1 is sensors
- * SPI1 is off board sensors
+ * SPI2 is off board sensors
  * SPI4 is FRAM
  */
 
@@ -459,10 +459,10 @@ UART8	DEBUG	/dev/ttyS5
 
  #define GPIO_SDMMC2_CK   GPIO_SDMMC2_CK_2    	/* PC1 */
  #define GPIO_SDMMC2_CMD  GPIO_SDMMC2_CMD_1 	/* PD7  */
- //	 GPIO_SDMMC2_D0   GPIO_SDMMC2_D0    	/* PB14  */
- //	 GPIO_SDMMC2_D1   GPIO_SDMMC2_D1    	/* PB15  */
+ //#define GPIO_SDMMC2_D0   GPIO_SDMMC2_D0_1    	/* PB14  */
+ //#define GPIO_SDMMC2_D1   GPIO_SDMMC2_D1_1    	/* PB15  */
  #define GPIO_SDMMC2_D2   GPIO_SDMMC2_D2_2    	/* PB3 */
- //	 GPIO_SDMMC2_D3   GPIO_SDMMC2_D3    	/* PB4 */
+ //#define GPIO_SDMMC2_D3   GPIO_SDMMC2_D3_1    	/* PB4 */
 
 /* USB
  *

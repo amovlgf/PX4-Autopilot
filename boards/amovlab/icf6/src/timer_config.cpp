@@ -48,7 +48,7 @@
  */
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-	initIOTimer(Timer::Timer1, DMA{DMA::Index1}),    //dam?
+	initIOTimer(Timer::Timer1, DMA{DMA::Index1}),
 	initIOTimer(Timer::Timer3, DMA{DMA::Index2}),
 	initIOTimer(Timer::Timer4),
 };
