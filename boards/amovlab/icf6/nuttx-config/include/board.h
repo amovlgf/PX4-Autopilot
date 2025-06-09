@@ -246,9 +246,15 @@
 
 #define STM32_RCC_D2CCIP2R_USBSRC    RCC_D2CCIP2R_USBSEL_PLL3
 
+/* UART clock selection */
+/* reset to default to overwrite any changes done by any bootloader */
+
+#define STM32_RCC_D2CCIP2R_USART234578_SEL RCC_D2CCIP2R_USART234578SEL_RCC
+#define STM32_RCC_D2CCIP2R_USART16_SEL     RCC_D2CCIP2R_USART16SEL_RCC
+
 /* ADC 1 2 3 clock source */
 
-#define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2
+#define STM32_RCC_D3CCIPR_ADCSRC     RCC_D3CCIPR_ADCSEL_PLL2
 
 /* FDCAN 1 2 clock source */
 
@@ -369,9 +375,10 @@ Uart	Port	Device
 USART2	TELEM1	/dev/ttyS0
 USART3	TELEM2	/dev/ttyS1
 UART4	GPS1	/dev/ttyS2
-USART6	RC	/dev/ttyS3
-UART7	GPS2	/dev/ttyS4
-UART8	DEBUG	/dev/ttyS5
+UART5	BASE	/dev/ttyS3
+USART6	RC	/dev/ttyS4
+UART7	GPS2	/dev/ttyS5
+UART8	DEBUG	/dev/ttyS6
 
 */
 #define GPIO_USART2_RX   GPIO_USART2_RX_2   /* PD6   */
@@ -387,6 +394,9 @@ UART8	DEBUG	/dev/ttyS5
 #define GPIO_UART4_RX   GPIO_UART4_RX_4    /* PC11 */
 #define GPIO_UART4_TX   GPIO_UART4_TX_4    /* PC10 */
 
+#define GPIO_UART5_RX   GPIO_UART5_RX_3    /* PD2 */
+#define GPIO_UART5_TX   GPIO_UART5_TX_3    /* PC12 */
+
 // #define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7 */
 // #define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6  */
 
@@ -399,16 +409,19 @@ UART8	DEBUG	/dev/ttyS5
 
 /* CAN
  *
- * CAN1 is routed to transceiver.
- * CAN2 is routed to transceiver.
+ * CAN1 is routed to external.
+ * CAN2 is routed to external.
  */
 #define GPIO_CAN1_RX     GPIO_CAN1_RX_3     /* PD0  */
 #define GPIO_CAN1_TX     GPIO_CAN1_TX_3     /* PD1  */
 
+#define GPIO_CAN2_RX     GPIO_CAN2_RX_1     /* PB12  */
+#define GPIO_CAN2_TX     GPIO_CAN2_TX_1     /* PB13  */
+
 /* SPI
  * SPI1 is sensors
  * SPI2 is off board sensors
- * SPI4 is FRAM
+ * SPI4 is fram and sensors
  */
 
 #define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
@@ -462,7 +475,7 @@ UART8	DEBUG	/dev/ttyS5
  //#define GPIO_SDMMC2_D0   GPIO_SDMMC2_D0_1    	/* PB14  */
  //#define GPIO_SDMMC2_D1   GPIO_SDMMC2_D1_1    	/* PB15  */
  #define GPIO_SDMMC2_D2   GPIO_SDMMC2_D2_2    	/* PB3 */
- //#define GPIO_SDMMC2_D3   GPIO_SDMMC2_D3_1    	/* PB4 */
+ //#define GPIO_SDMMC2_D3   GPIO_SDMMC2_D3_0    	/* PB4 */
 
 /* USB
  *
