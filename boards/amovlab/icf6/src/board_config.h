@@ -108,9 +108,10 @@
 /* HW Version and Revision drive signals Default to 1 to detect */
 #define BOARD_HAS_HW_VERSIONING
 
-#define GPIO_HW_VER_REV_DRIVE  /* PB13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN13)
-#define GPIO_HW_REV_SENSE      /* PA1 */  GPIO_ADC1_INN16
-#define GPIO_HW_VER_SENSE      /* PA2 */  GPIO_ADC12_INP14
+#define GPIO_HW_REV_DRIVE      /* PB11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN11)
+#define GPIO_HW_REV_SENSE      /* PA1 */  ADC1_CH(17)
+#define GPIO_HW_VER_DRIVE      /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
+#define GPIO_HW_VER_SENSE      /* PA2 */  ADC1_CH(14)
 #define HW_INFO_INIT_PREFIX    "ICF6"
 
 /* HEATER
@@ -120,11 +121,17 @@
 #define HEATER_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
 
 /* PWM	*/
-#define DIRECT_PWM_OUTPUT_CHANNELS   10
-#define BOARD_NUM_IO_TIMERS           3
+#define DIRECT_PWM_OUTPUT_CHANNELS   11
+#define BOARD_NUM_IO_TIMERS           4
+
+/* Power supply control and monitoring GPIOs */
+#define GPIO_VDD_5V_RC_EN               /* PC5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN5)
+
+/* Power switch controls ******************************************************/
+#define SPEKTRUM_POWER(on_true)            px4_arch_gpiowrite(GPIO_VDD_5V_RC_EN, (on_true))
+#define READ_SPEKTRUM_POWER()              px4_arch_gpioread(GPIO_VDD_5V_RC_EN)
 
 /* Tone alarm output */
-
 #define TONE_ALARM_TIMER        2  /* Timer 2 */
 #define TONE_ALARM_CHANNEL      1  /* PA15 GPIO_TIM2_CH1OUT_2 */
 
@@ -141,22 +148,15 @@
 #define HRT_TIMER               8  /* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL       2  /* use capture/compare channel 3 */
 
+/* RC Serial port */
 #define HRT_PPM_CHANNEL         /* T8C3 */  3  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PC8 T8C3 */ GPIO_TIM8_CH3IN_1
-
-/* RC Serial port */
-
-#define RC_SERIAL_PORT                     "/dev/ttyS3"
+#define RC_SERIAL_PORT                     "/dev/ttyS4"
 #define RC_SERIAL_SINGLEWIRE
-
-/* PWM input driver. Use FMU AUX5 pins attached to timer3 channel 2 */
-#define PWMIN_TIMER                       3
-#define PWMIN_TIMER_CHANNEL    /* T3C2 */ 2
-#define GPIO_PWM_IN            /* PA7  */ GPIO_TIM3_CH2IN_1
 
 /**
  * GPIO PPM_IN on PC8 T8C3
- * SPEKTRUM_RX (it's TX or RX in Bind) on UART8 PE0
+ * SPEKTRUM_RX (it's TX or RX in Bind) on UART6 PC6
  *   Inversion is possible in the UART and can drive GPIO_PPM_IN as an output
  */
 #define GPIO_PPM_IN_AS_OUT           (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN8)
@@ -201,9 +201,13 @@
 		PX4_ADC_GPIO,                     \
 		GPIO_CAN1_TX,                     \
 		GPIO_CAN1_RX,                     \
+		GPIO_CAN2_TX,                     \
+		GPIO_CAN2_RX,			  \
 		GPIO_HEATER_OUTPUT,               \
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_RSSI_IN,			  \
+		GPIO_VDD_5V_RC_EN, 		  \
+		GPIO_OTGFS_VBUS,		  \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
