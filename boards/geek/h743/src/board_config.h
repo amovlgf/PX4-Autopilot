@@ -129,6 +129,9 @@
 
 
 /* RC Serial port */
+#define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
+#define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
+
 #define RC_SERIAL_PORT          "/dev/ttyS3"
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
@@ -154,8 +157,9 @@
 #define BOARD_HAS_ON_RESET 1
 
 #define PX4_GPIO_INIT_LIST { \
-		PX4_ADC_GPIO, \
+		PX4_ADC_GPIO, 			  \
 		GPIO_TONE_ALARM_IDLE,             \
+		GPIO_PPM_IN,   			  \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
