@@ -38,20 +38,20 @@
 #include <board_config.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-		initSPIBus(SPI::Bus::SPI1, {
-			initSPIDevice(DRV_GYR_DEVTYPE_BMI088,  SPI::CS{GPIO::PortE, GPIO::Pin3}),
-			initSPIDevice(DRV_ACC_DEVTYPE_BMI088,  SPI::CS{GPIO::PortE, GPIO::Pin4}),
-			initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortB, GPIO::Pin2}),
-			initSPIDevice(DRV_MAG_DEVTYPE_BMM150, SPI::CS{GPIO::PortA, GPIO::Pin8}),
-		}),
-		initSPIBus(SPI::Bus::SPI2, {
-			initSPIDevice(SPIDEV_USER(0), SPI::CS{GPIO::PortC, GPIO::Pin0}),
-			initSPIDevice(SPIDEV_USER(1), SPI::CS{GPIO::PortD, GPIO::Pin10}),
-		}),
-		initSPIBus(SPI::Bus::SPI4, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortE, GPIO::Pin15}),
-			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortE, GPIO::Pin10}),
-		}),
+	initSPIBus(SPI::Bus::SPI1, {
+		initSPIDevice(DRV_GYR_DEVTYPE_BMI088,  SPI::CS{GPIO::PortE, GPIO::Pin3}),
+		initSPIDevice(DRV_ACC_DEVTYPE_BMI088,  SPI::CS{GPIO::PortE, GPIO::Pin4}),
+		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortB, GPIO::Pin2}),
+		initSPIDevice(DRV_MAG_DEVTYPE_BMM150, SPI::CS{GPIO::PortA, GPIO::Pin8}),
+	}),
+	initSPIBus(SPI::Bus::SPI2, {
+		initSPIDevice(SPIDEV_USER(0), SPI::CS{GPIO::PortC, GPIO::Pin0}),
+		initSPIDevice(SPIDEV_USER(1), SPI::CS{GPIO::PortD, GPIO::Pin10}),
+	}),
+	initSPIBus(SPI::Bus::SPI4, {
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortE, GPIO::Pin15}),
+		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortE, GPIO::Pin10}),
+	}),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);

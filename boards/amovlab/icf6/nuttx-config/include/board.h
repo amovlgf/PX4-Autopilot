@@ -470,12 +470,12 @@ UART8	DEBUG	/dev/ttyS6
  *      SDMMC2_D3                           PB4
  */
 
- #define GPIO_SDMMC2_CK   GPIO_SDMMC2_CK_2    	/* PC1 */
- #define GPIO_SDMMC2_CMD  GPIO_SDMMC2_CMD_1 	/* PD7  */
- //#define GPIO_SDMMC2_D0   GPIO_SDMMC2_D0_1    	/* PB14  */
- //#define GPIO_SDMMC2_D1   GPIO_SDMMC2_D1_1    	/* PB15  */
- #define GPIO_SDMMC2_D2   GPIO_SDMMC2_D2_2    	/* PB3 */
- //#define GPIO_SDMMC2_D3   GPIO_SDMMC2_D3_0    	/* PB4 */
+#define GPIO_SDMMC2_CK   GPIO_SDMMC2_CK_2    	/* PC1 */
+#define GPIO_SDMMC2_CMD  GPIO_SDMMC2_CMD_1 	/* PD7  */
+//#define GPIO_SDMMC2_D0   GPIO_SDMMC2_D0_1    	/* PB14  */
+//#define GPIO_SDMMC2_D1   GPIO_SDMMC2_D1_1    	/* PB15  */
+#define GPIO_SDMMC2_D2   GPIO_SDMMC2_D2_2    	/* PB3 */
+//#define GPIO_SDMMC2_D3   GPIO_SDMMC2_D3_0    	/* PB4 */
 
 /* USB
  *
