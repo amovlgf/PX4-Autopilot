@@ -375,7 +375,7 @@ Uart	Port	Device
 USART2	TELEM1	/dev/ttyS0
 USART3	TELEM2	/dev/ttyS1
 UART4	GPS1	/dev/ttyS2
-UART5	BASE	/dev/ttyS3
+UART5	TELEM3	/dev/ttyS3
 USART6	RC	/dev/ttyS4
 UART7	GPS2	/dev/ttyS5
 UART8	DEBUG	/dev/ttyS6
@@ -397,8 +397,8 @@ UART8	DEBUG	/dev/ttyS6
 #define GPIO_UART5_RX   GPIO_UART5_RX_3    /* PD2 */
 #define GPIO_UART5_TX   GPIO_UART5_TX_3    /* PC12 */
 
-// #define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7 */
-// #define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6  */
+#define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7 */
+#define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6  */
 
 #define GPIO_UART7_RX    GPIO_UART7_RX_3    /* PE7  */
 #define GPIO_UART7_TX    GPIO_UART7_TX_3    /* PE8  */
