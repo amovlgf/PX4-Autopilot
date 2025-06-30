@@ -42,7 +42,7 @@ static const px4_mft_device_t spi4 = {             // FM25V02A on FMUM 32K 512 X
 
 static const px4_mtd_entry_t fmum_fram = {
 	.device = &spi4,
-	.npart = 4,
+	.npart = 2,
 	.partd = {
 		{
 			.type = MTD_PARAMETERS,
