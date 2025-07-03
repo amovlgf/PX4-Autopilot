@@ -235,7 +235,7 @@ then
 	fi
 	qmc5883l -X -q start
 	rm3100 -X -q start
-
+	rgbled_aw2023 -X -q start
 	# start last (wait for possible icm20948 passthrough mode)
 	ak09916 -X -q start
 fi
