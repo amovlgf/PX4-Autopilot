@@ -77,8 +77,8 @@ using namespace time_literals;
 #define AW2023_LED0_ENABLE   	             0x01  /**< LED0 Enable (blue)*/
 #define AW2023_LED2_ENABLE  	             0x02  /**< LED2 Enable (green)*/
 #define AW2023_LED1_ENABLE    	   	     0x04  /**< LED1 Enable (red)*/
-#define AW2023_LED2_CUR  	             0x0F  /**< LED output current*/
-#define AW2023_LED_PWM  		     0XFF  /**< full brightness */
+#define AW2023_LED2_CUR  	             0x01  /**< LED output current*/
+#define AW2023_LED_PWM  		     0X01  /**< full brightness */
 
 class RGBLED_AW2023 : public device::I2C, public I2CSPIDriver<RGBLED_AW2023>
 {
