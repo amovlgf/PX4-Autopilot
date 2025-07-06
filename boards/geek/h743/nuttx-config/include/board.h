@@ -365,11 +365,13 @@
 #define GPIO_UART4_RX    GPIO_UART4_RX_2    /* PA1  */
 #define GPIO_UART4_TX    GPIO_UART4_TX_2    /* PA0  */
 
-#define GPIO_UART5_RX    GPIO_UART5_RX_3    /* PD2  */
-#define GPIO_UART5_TX    GPIO_UART5_TX_3    /* PC12  */
+//#define GPIO_UART5_RX    GPIO_UART5_RX_3    /* PD2  */
+//#define GPIO_UART5_TX    GPIO_UART5_TX_3    /* PC12  */
 
 #define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7  */
 #define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6  */
+
+
 
 /* USB
  *
