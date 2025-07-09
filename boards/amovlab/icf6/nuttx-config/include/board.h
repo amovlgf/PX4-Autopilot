@@ -246,15 +246,15 @@
 
 #define STM32_RCC_D2CCIP2R_USBSRC    RCC_D2CCIP2R_USBSEL_PLL3
 
-/* UART clock selection */
-/* reset to default to overwrite any changes done by any bootloader */
+// /* UART clock selection */
+// /* reset to default to overwrite any changes done by any bootloader */
 
-#define STM32_RCC_D2CCIP2R_USART234578_SEL RCC_D2CCIP2R_USART234578SEL_RCC
-#define STM32_RCC_D2CCIP2R_USART16_SEL     RCC_D2CCIP2R_USART16SEL_RCC
+// #define STM32_RCC_D2CCIP2R_USART234578_SEL RCC_D2CCIP2R_USART234578SEL_RCC
+// #define STM32_RCC_D2CCIP2R_USART16_SEL     RCC_D2CCIP2R_USART16SEL_RCC
 
 /* ADC 1 2 3 clock source */
 
-#define STM32_RCC_D3CCIPR_ADCSRC     RCC_D3CCIPR_ADCSEL_PLL2
+#define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2
 
 /* FDCAN 1 2 clock source */
 
@@ -437,6 +437,7 @@ UART8	DEBUG	/dev/ttyS6
 #define GPIO_SPI4_MISO   GPIO_SPI4_MISO_2               /* PE5  */
 #define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_2               /* PE6  */
 #define GPIO_SPI4_SCK    ADJ_SLEW_RATE(GPIO_SPI4_SCK_2) /* PE2  */
+
 
 /* I2C
  *

@@ -10,12 +10,9 @@ bmi088 -G -R 0 -s start
 
 # Internal SPI bus ICM42688p
 icm42688p -R 2 -s start
-# icm42670p -R 2 -s start
 
 # Internal barometer on I2C4 (The same bus is also exposed externally, and therefore marked as external)
-# ms5611 -X -b 1 -a 0x76 start
-ms5611 -X -b 4 -a 0x77 start
-# ms5611 -s start
+ms5611 -s start
 
 # bmm150 -R 26 -s start
 qmc5883l -X -b 4 -a 0x0d -R 20 start
@@ -29,5 +26,4 @@ bmp388 -X -b 1 start
 # External compass on GPS/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 #ist8310 -X -b 1 -R 10 start
 
-# rgbled_aw2013 start -X -b 4
-rgbled_aw2013 -X -b 4 start
+rgbled_aw2023 -X -b 4 start
