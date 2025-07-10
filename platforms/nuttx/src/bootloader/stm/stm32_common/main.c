@@ -308,6 +308,11 @@ board_init(void)
 	/* Initialize LEDs */
 	px4_arch_configgpio(BOARD_PIN_LED_BOOTLOADER);
 #endif
+#if defined(GPIO_HEATER_OUTPUT)
+	/* Initialize HEATER */
+	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
+	HEATER_OUTPUT_EN(false);
+#endif
 }
 
 void
@@ -349,8 +354,6 @@ board_deinit(void)
 	/* Initialize LEDs */
 	px4_arch_configgpio(MK_GPIO_INPUT(BOARD_PIN_LED_BOOTLOADER));
 #endif
-
-
 
 	/* Clear any RSTR set above and disable the AHB peripheral clocks */
 
