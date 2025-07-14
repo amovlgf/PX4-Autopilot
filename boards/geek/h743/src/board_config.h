@@ -80,13 +80,13 @@
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
 #define PX4_ADC_GPIO  \
-	/* PA7  */  GPIO_ADC12_INN3, \
-	/* PC1  */  GPIO_ADC123_INP11
+	/* PA6  */  GPIO_ADC12_INP3, \
+	/* PA4  */  GPIO_ADC12_INP18
 
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
-#define ADC_BATTERY_VOLTAGE_CHANNEL     /* PA7  */  ADC1_CH(7)
-#define ADC_BATTERY_CURRENT_CHANNEL     /* PC1  */  ADC1_CH(11)
+#define ADC_BATTERY_VOLTAGE_CHANNEL     /* PA6  */  ADC1_CH(3)
+#define ADC_BATTERY_CURRENT_CHANNEL     /* PA4  */  ADC1_CH(18)
 
 
 #define ADC_CHANNELS \
@@ -97,7 +97,7 @@
 /* Define Battery 1 Voltage Divider and A per V
  */
 
-// #define BOARD_BATTERY1_V_DIV         (11.0f)     /* measured with the provided PM board */
+#define BOARD_BATTERY1_V_DIV         (11.0f)     /* measured with the provided PM board */
 // #define BOARD_BATTERY1_A_PER_V       (40.0f)
 // #define BOARD_BATTERY2_V_DIV         (11.0f)     /* measured with the provided PM board */
 
