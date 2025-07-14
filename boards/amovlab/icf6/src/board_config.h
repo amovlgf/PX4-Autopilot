@@ -127,10 +127,6 @@
 /* Power supply control and monitoring GPIOs */
 #define GPIO_VDD_5V_RC_EN               /* PC5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN5)
 
-/* Power switch controls ******************************************************/
-#define SPEKTRUM_POWER(on_true)            px4_arch_gpiowrite(GPIO_VDD_5V_RC_EN, (on_true))
-#define READ_SPEKTRUM_POWER()              px4_arch_gpioread(GPIO_VDD_5V_RC_EN)
-
 /* Tone alarm output */
 #define TONE_ALARM_TIMER        2  /* Timer 2 */
 #define TONE_ALARM_CHANNEL      1  /* PA15 GPIO_TIM2_CH1OUT_2 */
@@ -151,18 +147,10 @@
 /* RC Serial port */
 #define HRT_PPM_CHANNEL         /* T8C3 */  3  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PC8 T8C3 */ GPIO_TIM8_CH3IN_1
-#define RC_SERIAL_PORT                     "/dev/ttyS4"
-#define RC_SERIAL_SINGLEWIRE
 
-/**
- * GPIO PPM_IN on PC8 T8C3
- * SPEKTRUM_RX (it's TX or RX in Bind) on UART6 PC6
- *   Inversion is possible in the UART and can drive GPIO_PPM_IN as an output
- */
-#define GPIO_PPM_IN_AS_OUT           (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN8)
-#define SPEKTRUM_RX_AS_GPIO_OUTPUT() px4_arch_configgpio(GPIO_PPM_IN_AS_OUT)
-#define SPEKTRUM_RX_AS_UART()       /* Can be left as uart */
-#define SPEKTRUM_OUT(_one_true)      px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
+#define RC_SERIAL_PORT          "/dev/ttyS4"
+#define GPIO_SBUS_INV            /* PC6 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN7)
+#define RC_INVERT_INPUT(_invert_true)  px4_arch_gpiowrite(GPIO_SBUS_INV, _invert_true);
 
 /* RSSI_IN */
 #define GPIO_RSSI_IN            /* PA0  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN0)
