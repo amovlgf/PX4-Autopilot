@@ -34,3 +34,20 @@ param set-default CA_ROTOR2_KM -0.05
 param set-default CA_ROTOR3_PX -0.10
 param set-default CA_ROTOR3_PY 0.13
 param set-default CA_ROTOR3_KM -0.05
+
+# MAVLink parameters
+# TELEM1 ttyS0 - Wifi module
+param set-default MAV_0_CONFIG 101
+param set-default MAV_0_FLOW_CTRL 0 # Force off
+param set-default SER_TEL1_BAUD 57600
+
+# GPS2 ttyS5 -  Optical flow module
+param set-default MAV_1_CONFIG 202
+param set-default MAV_1_FLOW_CTRL 0 # Force off
+param set-default SER_GPS2_BAUD 115200
+
+# # TELEM2 ttyS1 - on-board computer
+# param set-default MAV_2_CONFIG 102
+# param set-default MAV_2_FLOW_CTRL 0 # Force off
+# param set-default MAV_2_MODE 2  # Onboard
+# param set-default SER_TEL2_BAUD 921600

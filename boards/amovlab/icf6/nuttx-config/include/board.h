@@ -485,7 +485,6 @@ UART8	DEBUG	/dev/ttyS6
  *      VBUS                                PA9
  */
 
-
 /* Board provides GPIO or other Hardware for signaling to timing analyzer */
 
 #if defined(CONFIG_BOARD_USE_PROBES)

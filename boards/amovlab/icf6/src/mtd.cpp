@@ -42,19 +42,13 @@ static const px4_mft_device_t spi4 = {             // FM25V02A on FMUM 32K 512 X
 
 static const px4_mtd_entry_t fmum_fram = {
 	.device = &spi4,
-	.npart = 2,
+	.npart = 1,
 	.partd = {
 		{
 			.type = MTD_PARAMETERS,
 			.path = "/fs/mtd_params",
-			.nblocks = 32
+			.nblocks = (32768 / (1 << CONFIG_RAMTRON_EMULATE_SECTOR_SHIFT))
 		},
-		{
-			.type = MTD_WAYPOINTS,
-			.path = "/fs/mtd_waypoints",
-			.nblocks = 32
-
-		}
 	},
 };
 

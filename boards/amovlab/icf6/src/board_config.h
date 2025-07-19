@@ -76,7 +76,7 @@
 #define ADC3_CH(n)                  (n)
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
-#define ADC_V5_V_FULL_SCALE             (3.3f)
+#define ADC_5V_RAIL_SENSE           4
 #define PX4_ADC_GPIO  \
 	/* PA4  */  GPIO_ADC12_INP18,   \
 	/* PB1  */  GPIO_ADC12_INP5,	\
@@ -122,16 +122,19 @@
 
 /* PWM	*/
 #define DIRECT_PWM_OUTPUT_CHANNELS   11
-#define BOARD_NUM_IO_TIMERS           4
+#define BOARD_NUM_IO_TIMERS           5
 
-/* Power supply control and monitoring GPIOs */
+// /* Power supply control and monitoring GPIOs */
 #define GPIO_VDD_5V_RC_EN               /* PC5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN5)
 
 /* Tone alarm output */
+
 #define TONE_ALARM_TIMER        2  /* Timer 2 */
 #define TONE_ALARM_CHANNEL      1  /* PA15 GPIO_TIM2_CH1OUT_2 */
 
-#define GPIO_TONE_ALARM_IDLE    /* PA15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
+#define GPIO_BUZZER_1           /* PA15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
+
+#define GPIO_TONE_ALARM_IDLE    GPIO_BUZZER_1
 #define GPIO_TONE_ALARM         GPIO_TIM2_CH1OUT_2
 
 /* USB OTG FS
