@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,11 +30,46 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
+	add_compile_definitions(BOOTLOADER)
+	add_library(drivers_board
+		bootloader_main.c
+		init.c
+		usb.c
+		timer_config.cpp
+	)
+	target_link_libraries(drivers_board
+		PRIVATE
+			nuttx_arch # sdio
+			nuttx_drivers # sdio
+			px4_layer #gpio
+			arch_io_pins # iotimer
+			bootloader
+	)
+	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common)
 
-#add_subdirectory(neopixel) # requires board support (BOARD_HAS_N_S_RGB_LED)
-add_subdirectory(rgbled)
-add_subdirectory(rgbled_ncp5623c)
-add_subdirectory(rgbled_is31fl3195)
-add_subdirectory(rgbled_lp5562)
-add_subdirectory(rgbled_aw2023)
-#add_subdirectory(rgbled_pwm) # requires board support (BOARD_HAS_LED_PWM/BOARD_HAS_UI_LED_PWM)
+else()
+	add_library(drivers_board
+		can.c
+		i2c.cpp
+		init.c
+		led.c
+		mtd.cpp
+		manifest.c
+		sdio.c
+		spi.cpp
+		timer_config.cpp
+		usb.c
+	)
+	add_dependencies(drivers_board arch_board_hw_info)
+
+	target_link_libraries(drivers_board
+		PRIVATE
+			arch_spi
+			arch_board_hw_info
+			drivers__led # drv_led_start
+			nuttx_arch # sdio
+			nuttx_drivers # sdio
+			px4_layer
+	)
+endif()

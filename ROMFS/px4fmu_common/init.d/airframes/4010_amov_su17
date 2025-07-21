@@ -1,0 +1,58 @@
+#!/bin/sh
+#
+# @name AMOVLAB SU17
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer Amovlab Lv Guofei <service@amovauto.com>
+#
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default MPC_XY_P 0.70
+param set-default MPC_XY_VEL_P_ACC 2.20
+param set-default MPC_XY_VEL_D_ACC 0.35
+
+param set-default MC_PITCH_P 7.0
+param set-default MC_ROLL_P 7.0
+
+param set-default MC_ROLLRATE_P 0.18
+param set-default MC_PITCHRATE_P 0.18
+param set-default MC_ROLLRATE_I 0.025
+param set-default MC_PITCHRATE_I 0.025
+param set-default MC_ROLLRATE_D 0.0025
+param set-default MC_PITCHRATE_D 0.0025
+param set-default MC_PITCHRATE_K 0.3
+param set-default MC_ROLLRATE_K 0.3
+
+# Square quadrotor X PX4 numbering
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.10
+param set-default CA_ROTOR0_PY 0.13
+param set-default CA_ROTOR1_PX -0.10
+param set-default CA_ROTOR1_PY -0.13
+param set-default CA_ROTOR2_PX 0.10
+param set-default CA_ROTOR2_PY -0.13
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.10
+param set-default CA_ROTOR3_PY 0.13
+param set-default CA_ROTOR3_KM -0.05
+
+# MAVLink parameters
+# TELEM1 ttyS0 - Wifi module
+param set-default MAV_0_CONFIG 101
+param set-default MAV_0_FLOW_CTRL 0 # Force off
+param set-default SER_TEL1_BAUD 57600
+
+# GPS2 ttyS5 -  Optical flow module
+param set-default MAV_1_CONFIG 202
+param set-default MAV_1_FLOW_CTRL 0 # Force off
+param set-default SER_GPS2_BAUD 115200
+
+# # TELEM2 ttyS1 - on-board computer
+# param set-default MAV_2_CONFIG 102
+# param set-default MAV_2_FLOW_CTRL 0 # Force off
+# param set-default MAV_2_MODE 2  # Onboard
+# param set-default SER_TEL2_BAUD 921600
