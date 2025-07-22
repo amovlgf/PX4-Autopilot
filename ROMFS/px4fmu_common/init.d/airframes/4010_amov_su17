@@ -52,7 +52,7 @@ param set-default MAV_1_FLOW_CTRL 0 # Force off
 param set-default SER_GPS2_BAUD 115200
 
 # # TELEM2 ttyS1 - on-board computer
-# param set-default MAV_2_CONFIG 102
-# param set-default MAV_2_FLOW_CTRL 0 # Force off
-# param set-default MAV_2_MODE 2  # Onboard
-# param set-default SER_TEL2_BAUD 921600
+param set-default MAV_2_CONFIG 102
+param set-default MAV_2_FLOW_CTRL 0 # Force off
+param set-default MAV_2_MODE 2  # Onboard
+param set-default SER_TEL2_BAUD 921600

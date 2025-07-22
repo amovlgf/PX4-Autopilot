@@ -4,7 +4,7 @@
 #------------------------------------------------------------------------------
 board_adc start
 
-# Internal SPI1 bus BMI055 accel/gyro
+# Internal SPI1 bus BMI088 accel/gyro
 bmi088 -A -R 4 -s start
 bmi088 -G -R 4 -s start
 
