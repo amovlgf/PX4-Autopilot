@@ -145,7 +145,7 @@
 
 /* High-resolution timer */
 #define HRT_TIMER               8  /* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL       2  /* use capture/compare channel 3 */
+#define HRT_TIMER_CHANNEL       2  /* use capture/compare channel 2 */
 
 /* RC Serial port */
 #define HRT_PPM_CHANNEL         /* T8C3 */  3  /* use capture/compare channel 1 */
