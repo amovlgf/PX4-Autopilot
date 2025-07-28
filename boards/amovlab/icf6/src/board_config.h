@@ -70,37 +70,26 @@
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel */
 
-#define ADC1_CH(n)                  (n)
-
-/* N.B. there is no offset mapping needed for ADC3 because */
-#define ADC3_CH(n)                  (n)
-
-/* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
-#define ADC_5V_RAIL_SENSE           4
 #define PX4_ADC_GPIO  \
-	/* PA4  */  GPIO_ADC12_INP18,   \
-	/* PB1  */  GPIO_ADC12_INP5,	\
-	/* PA1  */  GPIO_ADC1_INP17, 	\
-	/* PA2  */  GPIO_ADC12_INP14,  	\
-	/* PA0  */  GPIO_ADC1_INN16
+	/* PA4  */  GPIO_ADC12_INP18,  \
+	/* PB1  */  GPIO_ADC12_INP5,   \
+	/* PA1  */  GPIO_ADC1_INP17,   \
+	/* PA2 */   GPIO_ADC12_INP14,  \
+	/* PA0  */  GPIO_ADC1_INP16
 
-/* Define Channel numbers must match above GPIO pin IN(n)*/
-#define ADC_BATTERY_CURRENT_CHANNEL	  /* PA4 */  ADC1_CH(18)
-#define ADC_BATTERY_VOLTAGE_CHANNEL	  /* PB1 */  ADC1_CH(5)
-#define ADC_HW_REV_SENSE_CHANNEL          /* PA2 */  ADC1_CH(14)
-#define ADC_HW_VER_SENSE_CHANNEL          /* PA1 */  ADC1_CH(17)
-#define ADC_RSSI_IN_CHANNEL          	  /* PA0 */  ADC1_CH(16)
+/* Define Channel numbers must match above GPIO pins */
+#define ADC_BATTERY_CURRENT_CHANNEL        18 /* PA4  */
+#define ADC_BATTERY_VOLTAGE_CHANNEL        5  /* PB1  */
+#define ADC_HW_REV_SENSE_CHANNEL           17 /* PA1  */
+#define ADC_HW_VER_SENSE_CHANNEL           14 /* PA2  */
+#define ADC_RSSI_IN_CHANNEL                16 /* PA0  */
 
 #define ADC_CHANNELS \
-	((1 << ADC_BATTERY_CURRENT_CHANNEL) | \
-	 (1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
-	 (1 << ADC_HW_REV_SENSE_CHANNEL)    | \
-	 (1 << ADC_HW_VER_SENSE_CHANNEL)    | \
+	((1 << ADC_BATTERY_CURRENT_CHANNEL)       | \
+	 (1 << ADC_BATTERY_VOLTAGE_CHANNEL)       | \
+	 (1 << ADC_HW_REV_SENSE_CHANNEL)       	  | \
+	 (1 << ADC_HW_VER_SENSE_CHANNEL)          | \
 	 (1 << ADC_RSSI_IN_CHANNEL))
-
-#define HW_REV_VER_ADC_BASE STM32_ADC3_BASE
-
-#define SYSTEM_ADC_BASE STM32_ADC1_BASE
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
@@ -109,9 +98,9 @@
 #define BOARD_HAS_HW_VERSIONING
 
 #define GPIO_HW_REV_DRIVE      /* PB11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN11)
-#define GPIO_HW_REV_SENSE      /* PA1 */  ADC1_CH(17)
+#define GPIO_HW_REV_SENSE      /* PA1 */  GPIO_ADC1_INP17
 #define GPIO_HW_VER_DRIVE      /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
-#define GPIO_HW_VER_SENSE      /* PA2 */  ADC1_CH(14)
+#define GPIO_HW_VER_SENSE      /* PA2 */  GPIO_ADC12_INP14
 #define HW_INFO_INIT_PREFIX    "ICF6"
 
 /* HEATER
