@@ -44,9 +44,9 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortB, GPIO::Pin2}),
 		initSPIDevice(DRV_MAG_DEVTYPE_BMM150, SPI::CS{GPIO::PortA, GPIO::Pin8}),
 	}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(SPIDEV_USER(0), SPI::CS{GPIO::PortC, GPIO::Pin0}),
-		initSPIDevice(SPIDEV_USER(1), SPI::CS{GPIO::PortD, GPIO::Pin10}),
+	initSPIBusExternal(SPI::Bus::SPI2, {
+		initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin0}),
+		initSPIConfigExternal(SPI::CS{GPIO::PortD, GPIO::Pin10}),
 	}),
 	initSPIBus(SPI::Bus::SPI4, {
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortE, GPIO::Pin15}),
