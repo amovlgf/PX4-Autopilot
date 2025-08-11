@@ -310,6 +310,8 @@ bson_decoder_next(bson_decoder_t decoder)
 
 		/* XXX currently not supporting other types */
 		default:
+			PX4_ERR("got name '%s'", decoder->node.name);
+			PX4_ERR("node.type =%d", decoder->node.type);
 			CODER_KILL(decoder, "unsupported node type");
 		}
 	}
