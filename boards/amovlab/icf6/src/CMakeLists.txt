@@ -72,4 +72,22 @@ else()
 			nuttx_drivers # sdio
 			px4_layer
 	)
+
+	#message(STATUS "PX4_BOARD_LABEL: ${PX4_BOARD_LABEL}")
+	#message(STATUS "PX4_CONFIG: ${PX4_CONFIG}")
+
+	if("${PX4_BOARD_LABEL}" STREQUAL "test")
+	set(COMMON_AMOVLAB_SRC_DIR ${PX4_SOURCE_DIR}/boards/amovlab/src)
+	set(AMOVLAB_SYSTEMCMD_SRC_DIR ${COMMON_AMOVLAB_SRC_DIR}/systemcmds/amovlab)
+
+	px4_add_module(
+		MODULE systemcmds__amovlab
+		MAIN amovlab
+		COMPILE_FLAGS
+		SRCS
+			${AMOVLAB_SYSTEMCMD_SRC_DIR}/icf6_test.c
+			${AMOVLAB_SYSTEMCMD_SRC_DIR}/icf6_test_main.c
+		DEPENDS
+	)
+	endif()
 endif()
