@@ -12,7 +12,7 @@
 
 void icf6_print_usage(void)
 {
-	PRINT_MODULE_USAGE_NAME_SIMPLE("icf6", "command");
+	PRINT_MODULE_USAGE_NAME_SIMPLE("amovlab", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("led", "LED Test");
 }
 
@@ -27,9 +27,9 @@ int icf6_led_test(void)
 
 	for (i = 0; i < 2; i++) {
 		usleep(1000 * 100);
-		stm32_gpiowrite(GPIO_nLED_RED, false);
-		usleep(1000 * 100);
 		stm32_gpiowrite(GPIO_nLED_RED, true);
+		usleep(1000 * 100);
+		stm32_gpiowrite(GPIO_nLED_RED, false);
 
 		usleep(1000 * 100);
 		stm32_gpiowrite(GPIO_nLED_BLUE, false);

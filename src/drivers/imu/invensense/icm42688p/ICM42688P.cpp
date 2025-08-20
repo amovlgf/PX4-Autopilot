@@ -241,6 +241,7 @@ void ICM42688P::RunImpl()
 
 				} else {
 					perf_count(_drdy_missed_perf);
+					PX4_INFO("_drdy_timestamp_sample");
 				}
 
 				// push backup schedule back
@@ -254,9 +255,11 @@ void ICM42688P::RunImpl()
 				if (fifo_count >= FIFO::SIZE) {
 					FIFOReset();
 					perf_count(_fifo_overflow_perf);
+					PX4_INFO("fifo_count >= FIFO::SIZE");
 
 				} else if (fifo_count == 0) {
 					perf_count(_fifo_empty_perf);
+					PX4_INFO("fifo_count = 0");
 
 				} else {
 					// FIFO count (size in bytes)
@@ -272,6 +275,7 @@ void ICM42688P::RunImpl()
 						// not technically an overflow, but more samples than we expected or can publish
 						FIFOReset();
 						perf_count(_fifo_overflow_perf);
+						PX4_INFO("more samples");
 						samples = 0;
 					}
 				}
@@ -313,6 +317,7 @@ void ICM42688P::RunImpl()
 				} else {
 					// register check failed, force reset
 					perf_count(_bad_register_perf);
+					PX4_INFO("egister check failed");
 					Reset();
 				}
 			}
@@ -524,6 +529,7 @@ uint16_t ICM42688P::FIFOReadCount()
 
 	if (transfer(fifo_count_buf, fifo_count_buf, sizeof(fifo_count_buf)) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
+		PX4_INFO("read FIFO count faile");
 		return 0;
 	}
 
@@ -538,11 +544,13 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 
 	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
+		PX4_INFO("read FIFO bad");
 		return false;
 	}
 
 	if (buffer.INT_STATUS & INT_STATUS_BIT::FIFO_FULL_INT) {
 		perf_count(_fifo_overflow_perf);
+		PX4_INFO("read FIFO overflow");
 		FIFOReset();
 		return false;
 	}
@@ -551,6 +559,7 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 
 	if (fifo_count_bytes >= FIFO::SIZE) {
 		perf_count(_fifo_overflow_perf);
+		PX4_INFO("fifo_count_bytes >= FIFO::SIZE");
 		FIFOReset();
 		return false;
 	}
@@ -559,6 +568,7 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 
 	if (fifo_count_samples == 0) {
 		perf_count(_fifo_empty_perf);
+		PX4_INFO("fifo_count_samples = 0");
 		return false;
 	}
 
@@ -605,6 +615,7 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 
 		} else {
 			perf_count(_bad_transfer_perf);
+			PX4_INFO("valid is false");
 			break;
 		}
 	}
@@ -623,7 +634,7 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 void ICM42688P::FIFOReset()
 {
 	perf_count(_fifo_reset_perf);
-
+	PX4_INFO("reset");
 	// SIGNAL_PATH_RESET: FIFO flush
 	RegisterSetBits(Register::BANK_0::SIGNAL_PATH_RESET, SIGNAL_PATH_RESET_BIT::FIFO_FLUSH);
 
@@ -874,6 +885,7 @@ bool ICM42688P::ProcessTemperature(const FIFO::DATA fifo[], const uint8_t sample
 			// temperature changing wildly is an indication of a transfer error
 			if (fabsf(temperature[i] - temperature_avg) > 1000) {
 				perf_count(_bad_transfer_perf);
+				PX4_INFO("temperature changing");
 				return false;
 			}
 		}
@@ -888,6 +900,7 @@ bool ICM42688P::ProcessTemperature(const FIFO::DATA fifo[], const uint8_t sample
 
 		} else {
 			perf_count(_bad_transfer_perf);
+			PX4_INFO("use average temperature reading false");
 		}
 	}
 

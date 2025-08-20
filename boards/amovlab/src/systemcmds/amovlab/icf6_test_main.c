@@ -15,17 +15,19 @@ __EXPORT int amovlab_main(int argc, char *argv[]);
 
 int amovlab_main(int argc, char *argv[])
 {
-	icf6_print_usage();
-	return 1;
-	PX4_INFO("Running led test");
+	if (argc < 2) {
+		PX4_INFO("not enough arguments");
+		icf6_print_usage();
+		return 1;
+	}
 
-	if (!strcmp(argv[1], "led")) {
+	const char *command = argv[1];
 
-		PX4_INFO("Running led test");
+	if (strcmp(command, "led") == 0) {
 		return icf6_led_test();
-
 	}
 
 	icf6_print_usage();
+	PX4_ERR("test error: Invalid argument");
 	return -EINVAL;
 }
