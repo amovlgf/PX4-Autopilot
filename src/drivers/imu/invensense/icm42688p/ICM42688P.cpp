@@ -580,6 +580,7 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 
 		// With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
 		const uint8_t FIFO_HEADER = buffer.f[i].FIFO_Header;
+		//PX4_INFO("FIFO_HEADER[%d]: 0x%02x", i, FIFO_HEADER);
 
 		if (FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_MSG) {
 			// FIFO sample empty if HEADER_MSG set
@@ -885,7 +886,7 @@ bool ICM42688P::ProcessTemperature(const FIFO::DATA fifo[], const uint8_t sample
 			// temperature changing wildly is an indication of a transfer error
 			if (fabsf(temperature[i] - temperature_avg) > 1000) {
 				perf_count(_bad_transfer_perf);
-				PX4_INFO("temperature changing");
+				PX4_INFO("temperature changing:%lf", (double)temperature[i]);
 				return false;
 			}
 		}
