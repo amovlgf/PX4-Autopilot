@@ -75,6 +75,7 @@
 	/* PB1  */  GPIO_ADC12_INP5,   \
 	/* PA1  */  GPIO_ADC1_INP17,   \
 	/* PA2 */   GPIO_ADC12_INP14,  \
+	/* PA3 */   GPIO_ADC12_INP15,  \
 	/* PA0  */  GPIO_ADC1_INP16
 
 /* Define Channel numbers must match above GPIO pins */
@@ -82,6 +83,7 @@
 #define ADC_BATTERY_VOLTAGE_CHANNEL        5  /* PB1  */
 #define ADC_HW_REV_SENSE_CHANNEL           17 /* PA1  */
 #define ADC_HW_VER_SENSE_CHANNEL           14 /* PA2  */
+#define ADC_SCALED_V5_CHANNEL    	   15 /* PA3  */
 #define ADC_RSSI_IN_CHANNEL                16 /* PA0  */
 
 #define ADC_CHANNELS \
@@ -89,6 +91,7 @@
 	 (1 << ADC_BATTERY_VOLTAGE_CHANNEL)       | \
 	 (1 << ADC_HW_REV_SENSE_CHANNEL)       	  | \
 	 (1 << ADC_HW_VER_SENSE_CHANNEL)          | \
+	 (1 << ADC_SCALED_V5_CHANNEL)          | \
 	 (1 << ADC_RSSI_IN_CHANNEL))
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
@@ -110,7 +113,7 @@
 #define HEATER_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
 
 /* PWM	*/
-#define DIRECT_PWM_OUTPUT_CHANNELS   11
+#define DIRECT_PWM_OUTPUT_CHANNELS   10
 #define BOARD_NUM_IO_TIMERS           5
 
 // /* Power supply control and monitoring GPIOs */
