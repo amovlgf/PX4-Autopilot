@@ -45,7 +45,6 @@
  * TIM4_CH2  T FMU_CH8	PD13
  * TIM4_CH3  T FMU_CH9	PD14
  * TIM4_CH4  T FMU_CH10	PD15
- * TIM5_CH4  T FMU_CH11	PA3
  */
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
