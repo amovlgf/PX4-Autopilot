@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <poll.h>
 
 static bool thread_should_exit = false;
 static bool thread_running = false;
@@ -175,22 +176,82 @@ int rw_uart_thread_main(int argc, char *argv[])
 
 	const char *message = "amovlab\n";  // 包含换行符的完整消息
 
+	// 接收缓冲区
+	char recv_buffer[256];
+	ssize_t recv_len = 0;
+
+	// 设置poll用于非阻塞读取
+	struct pollfd fds[1];
+	fds[0].fd = uart_fd;
+	fds[0].events = POLLIN;
+
+	// 发送计数器
+	int send_counter = 0;
+	const int send_interval_ms = 1000; // 1秒发送间隔
+
 	while (!thread_should_exit) {
-		ssize_t bytes_written = write(uart_fd, message, strlen(message));
+		// 检查是否有数据可读（非阻塞）
+		int ret = poll(fds, 1, 100); // 100ms超时
 
-		if (bytes_written < 0) {
-			PX4_ERR("Serial write error: %s", strerror(errno));
-			break;
+		if (ret > 0) {
+			if (fds[0].revents & POLLIN) {
+				// 有数据可读
+				recv_len = read(uart_fd, recv_buffer, sizeof(recv_buffer) - 1);
 
-		} else if (bytes_written != (ssize_t)strlen(message)) {
-			PX4_WARN("Partial write: %zd/%zu bytes", bytes_written, strlen(message));
+				if (recv_len > 0) {
+					// 成功读取数据
+					recv_buffer[recv_len] = '\0'; // 添加字符串结束符
 
-		} else {
-			PX4_DEBUG("Sent: %s", message);
+					PX4_INFO("Received %zd bytes: %s", recv_len, recv_buffer);
+
+					// 将接收到的数据发送回去（回显功能）
+					ssize_t echo_bytes = write(uart_fd, recv_buffer, recv_len);
+
+					if (echo_bytes < 0) {
+						PX4_ERR("Echo write error: %s", strerror(errno));
+
+					} else if (echo_bytes != recv_len) {
+						PX4_WARN("Partial echo: %zd/%zd bytes", echo_bytes, recv_len);
+
+					} else {
+						PX4_DEBUG("Echoed: %s", recv_buffer);
+					}
+
+				} else if (recv_len < 0) {
+					// 读取错误
+					if (errno != EAGAIN && errno != EWOULDBLOCK) {
+						PX4_ERR("Serial read error: %s", strerror(errno));
+					}
+				}
+			}
+
+		} else if (ret < 0) {
+			// poll错误
+			PX4_ERR("Poll error: %s", strerror(errno));
 		}
 
-		// 使用PX4的usleep替代标准usleep
-		px4_usleep(1000000);  // 1秒延迟
+		// 定期发送消息（每秒一次）
+		send_counter += 100; // 每次循环增加100ms
+
+		if (send_counter >= send_interval_ms) {
+			ssize_t bytes_written = write(uart_fd, message, strlen(message));
+
+			if (bytes_written < 0) {
+				PX4_ERR("Serial write error: %s", strerror(errno));
+				break;
+
+			} else if (bytes_written != (ssize_t)strlen(message)) {
+				PX4_WARN("Partial write: %zd/%zu bytes", bytes_written, strlen(message));
+
+			} else {
+				PX4_DEBUG("Sent: %s", message);
+			}
+
+			send_counter = 0; // 重置计数器
+		}
+
+		// 短暂休眠，避免过度消耗CPU
+		px4_usleep(100000);  // 100ms延迟
 	}
 
 	PX4_INFO("rw_uart thread exiting");
