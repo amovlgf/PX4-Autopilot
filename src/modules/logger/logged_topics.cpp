@@ -56,7 +56,6 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("can_interface_status", 10);
 	add_topic("cellular_status", 200);
 	add_topic("commander_state");
-	add_topic("config_overrides");
 	add_topic("cpuload");
 	add_optional_topic("differential_drive_control_output", 100);
 	add_optional_topic("differential_drive_setpoint", 100);
@@ -83,10 +82,11 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("internal_combustion_engine_status", 10);
 	add_optional_topic("iridiumsbd_status", 1000);
 	add_optional_topic("irlock_report", 1000);
-	add_optional_topic("landing_gear", 200);
 	add_optional_topic("landing_gear_wheel", 100);
 	add_optional_topic("landing_target_pose", 1000);
 	add_optional_topic("launch_detection_status", 200);
+	add_optional_topic("logger_status", 200);
+	add_optional_topic("log_message", 200);
 	add_optional_topic("magnetometer_bias_estimate", 200);
 	add_topic("manual_control_setpoint", 200);
 	add_topic("manual_control_switches");
@@ -141,7 +141,6 @@ void LoggedTopics::add_default_topics()
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
 	add_optional_topic_multi("airspeed_wind", 1000, 4);
-	add_optional_topic_multi("control_allocator_status", 200, 2);
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
 	add_optional_topic_multi("sensor_hygrometer", 500, 4);
 	add_optional_topic_multi("rpm", 200);
