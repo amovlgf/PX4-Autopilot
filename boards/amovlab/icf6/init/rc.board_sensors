@@ -4,28 +4,13 @@
 #------------------------------------------------------------------------------
 board_adc start
 
-if ver hwtypecmp ICF6000000
-then
-	# Internal SPI1 bus BMI088 accel/gyro
-	bmi088 -A -R 4 -s start
-	bmi088 -G -R 4 -s start
 
-	# Internal SPI4 bus ICM42688p
-	icm42688p -R 6 -s start
+# Internal SPI1 bus BMI088 accel/gyro
+bmi088 -A -R 4 -s start
+bmi088 -G -R 4 -s start
 
-	# External compass on I2C4 (X950)
-	ist8310 -X -b 4 -R 10 start
-fi
-
-if ver hwtypecmp ICF6007007
-then
-	# Internal SPI1 bus BMI088 accel/gyro
-	bmi088 -A -R 4 -s start
-	bmi088 -G -R 4 -s start
-
-	# Internal SPI4 bus ICM42688p
-	icm42688p -R 6 -s start
-fi
+# Internal SPI4 bus ICM42688p
+icm42688p -R 6 -s start
 
 # Internal barometer on I2C1
 # bmp388 -X -b 1 start
@@ -41,3 +26,8 @@ qmc5883l -X -b 4 -a 0x0d -R 20 start
 
 # External lights on I2C4
 rgbled_aw2023 -X -b 4 start
+
+chip_temperature_monitor start
+tmp102a start -X -b 4 -a 0X48
+tmp102a start -X -b 4 -a 0X49
+tmp102a start -X -b 4 -a 0X4a

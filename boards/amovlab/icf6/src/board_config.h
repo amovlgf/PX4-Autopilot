@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,26 +73,23 @@
 #define PX4_ADC_GPIO  \
 	/* PA4  */  GPIO_ADC12_INP18,  \
 	/* PB1  */  GPIO_ADC12_INP5,   \
+	/* PA3  */  GPIO_ADC12_INP15,  \
 	/* PA1  */  GPIO_ADC1_INP17,   \
-	/* PA2 */   GPIO_ADC12_INP14,  \
-	/* PA3 */   GPIO_ADC12_INP15,  \
-	/* PA0  */  GPIO_ADC1_INP16
+	/* PA2 */   GPIO_ADC12_INP14
 
 /* Define Channel numbers must match above GPIO pins */
 #define ADC_BATTERY_CURRENT_CHANNEL        18 /* PA4  */
 #define ADC_BATTERY_VOLTAGE_CHANNEL        5  /* PB1  */
+#define ADC_SCALED_V5_CHANNEL        	   15 /* PA3  */
 #define ADC_HW_REV_SENSE_CHANNEL           17 /* PA1  */
 #define ADC_HW_VER_SENSE_CHANNEL           14 /* PA2  */
-#define ADC_SCALED_V5_CHANNEL    	   15 /* PA3  */
-#define ADC_RSSI_IN_CHANNEL                16 /* PA0  */
 
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY_CURRENT_CHANNEL)       | \
 	 (1 << ADC_BATTERY_VOLTAGE_CHANNEL)       | \
+	 (1 << ADC_SCALED_V5_CHANNEL)             | \
 	 (1 << ADC_HW_REV_SENSE_CHANNEL)       	  | \
-	 (1 << ADC_HW_VER_SENSE_CHANNEL)          | \
-	 (1 << ADC_SCALED_V5_CHANNEL)          | \
-	 (1 << ADC_RSSI_IN_CHANNEL))
+	 (1 << ADC_HW_VER_SENSE_CHANNEL))
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
@@ -144,11 +141,6 @@
 #define GPIO_PPM_IN             /* PC8 T8C3 */ GPIO_TIM8_CH3IN_1
 
 #define RC_SERIAL_PORT          "/dev/ttyS4"
-#define GPIO_SBUS_INV            /* PC6 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN7)
-#define RC_INVERT_INPUT(_invert_true)  px4_arch_gpiowrite(GPIO_SBUS_INV, _invert_true);
-
-/* RSSI_IN */
-#define GPIO_RSSI_IN            /* PA0  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN0)
 
 #define SDIO_SLOTNO                    0  /* Only one slot */
 #define SDIO_MINOR                     0
@@ -188,7 +180,6 @@
 		GPIO_CAN2_RX,			  \
 		GPIO_HEATER_OUTPUT,               \
 		GPIO_TONE_ALARM_IDLE,             \
-		GPIO_RSSI_IN,			  \
 		GPIO_VDD_5V_RC_EN, 		  \
 		GPIO_OTGFS_VBUS,		  \
 	}
