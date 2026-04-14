@@ -37,11 +37,11 @@
 
 using namespace time_literals;
 
-namespace Bosch::BMI088::Gyroscope
+namespace Bosch::BMI088_I2C::Gyroscope
 {
 
 BMI088_Gyroscope::BMI088_Gyroscope(const I2CSPIDriverConfig &config) :
-	BMI088(config),
+	BMI088_I2C(config),
 	_px4_gyro(get_device_id(), config.rotation)
 {
 	if (config.drdy_gpio != 0) {
@@ -518,4 +518,4 @@ bool BMI088_Gyroscope::SimpleFIFORead(const hrt_abstime &timestamp_sample)
 	return true;
 
 }
-} // namespace Bosch::BMI088::Gyroscope
+} // namespace Bosch::BMI088_I2C::Gyroscope

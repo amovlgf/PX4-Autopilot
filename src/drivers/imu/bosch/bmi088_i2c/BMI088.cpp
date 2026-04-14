@@ -36,15 +36,15 @@
 #include "BMI088_Accelerometer.hpp"
 #include "BMI088_Gyroscope.hpp"
 
-I2CSPIDriverBase *BMI088::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
+I2CSPIDriverBase *BMI088_I2C::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
-	BMI088 *instance = nullptr;
+	BMI088_I2C *instance = nullptr;
 
 	if (config.devid_driver_index == DRV_ACC_DEVTYPE_BMI088) {
-		instance = new Bosch::BMI088::Accelerometer::BMI088_Accelerometer(config);
+		instance = new Bosch::BMI088_I2C::Accelerometer::BMI088_Accelerometer(config);
 
 	} else if (config.devid_driver_index == DRV_GYR_DEVTYPE_BMI088) {
-		instance = new Bosch::BMI088::Gyroscope::BMI088_Gyroscope(config);
+		instance = new Bosch::BMI088_I2C::Gyroscope::BMI088_Gyroscope(config);
 	}
 
 	if (!instance) {
@@ -60,14 +60,14 @@ I2CSPIDriverBase *BMI088::instantiate(const I2CSPIDriverConfig &config, int runt
 	return instance;
 }
 
-BMI088::BMI088(const I2CSPIDriverConfig &config) :
+BMI088_I2C::BMI088_I2C(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
 	_drdy_gpio(config.drdy_gpio)
 {
 }
 
-int BMI088::init()
+int BMI088_I2C::init()
 {
 	int ret = I2C::init();
 
@@ -82,7 +82,7 @@ int BMI088::init()
 	return res;
 }
 
-bool BMI088::Reset()
+bool BMI088_I2C::Reset()
 {
 	_state = STATE::RESET;
 	ScheduleClear();

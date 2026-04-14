@@ -33,7 +33,7 @@
 
 #pragma once
 
-namespace Bosch::BMI088::Gyroscope
+namespace Bosch::BMI088_I2C::Gyroscope
 {
 
 // TODO: move to a central header
@@ -151,4 +151,4 @@ static_assert(sizeof(DATA) == 6);
 static constexpr size_t SIZE = sizeof(DATA) * 100;
 
 } // namespace FIFO
-} // namespace Bosch::BMI088::Gyroscope
+} // namespace Bosch::BMI088_I2C::Gyroscope

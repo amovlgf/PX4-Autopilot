@@ -33,7 +33,7 @@
 
 #pragma once
 
-namespace Bosch::BMI088::Accelerometer
+namespace Bosch::BMI088_I2C::Accelerometer
 {
 
 // TODO: move to a central header
@@ -198,4 +198,4 @@ struct bmi08x_sensor_data {
 	int16_t z;
 };
 } // namespace FIFO
-} // namespace Bosch::BMI088::Accelerometer
+} // namespace Bosch::BMI088_I2C::Accelerometer

@@ -37,7 +37,7 @@
 
 #include "BMI088.hpp"
 
-void BMI088::print_usage()
+void BMI088_I2C::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("bmi088_i2c", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
@@ -53,7 +53,7 @@ void BMI088::print_usage()
 extern "C" int bmi088_i2c_main(int argc, char *argv[])
 {
 	int ch;
-	using ThisDriver = BMI088;
+	using ThisDriver = BMI088_I2C;
 	BusCLIArguments cli{true, false};
 	cli.i2c_address = 0x18;
 	cli.default_i2c_frequency = 400 * 1000;

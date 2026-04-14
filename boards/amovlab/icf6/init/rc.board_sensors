@@ -9,6 +9,8 @@ board_adc start
 bmi088 -A -R 4 -s start
 bmi088 -G -R 4 -s start
 
+# bmi088_i2c 不在上电时启动；产线 I2C 测试请运行: hw_test i2c
+
 # Internal SPI4 bus ICM42688p
 icm42688p -R 6 -s start
 
@@ -21,8 +23,8 @@ ms5611 -s start
 # External barometer on I2C4
 # ms5611 start -X -b 4
 
-# External compass on I2C4
-qmc5883l -X -b 4 -a 0x0d -R 20 start
+# External compass on I2C4 (RM3100 for current FAT setup)
+rm3100 start -X -b 4
 
 # External lights on I2C4
 rgbled_aw2023 -X -b 4 start

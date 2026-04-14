@@ -436,8 +436,8 @@ else
 	#
 	. ${R}etc/init.d/rc.serial
 
-	# Must be started after the serial config is read
-	rc_input start $RC_INPUT_ARGS
+	# Must be started after the serial config is read (content from Kconfig: rc.rc_input_cmd)
+	. ${R}etc/init.d/rc.rc_input_cmd
 
 	# Manages USB interface
 	if ! cdcacm_autostart start

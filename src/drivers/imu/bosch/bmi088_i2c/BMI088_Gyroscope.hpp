@@ -39,10 +39,10 @@
 
 #include "Bosch_BMI088_Gyroscope_Registers.hpp"
 
-namespace Bosch::BMI088::Gyroscope
+namespace Bosch::BMI088_I2C::Gyroscope
 {
 
-class BMI088_Gyroscope : public BMI088
+class BMI088_Gyroscope : public BMI088_I2C
 {
 public:
 	BMI088_Gyroscope(const I2CSPIDriverConfig &config);
@@ -124,4 +124,4 @@ private:
 	};
 };
 
-} // namespace Bosch::BMI088::Gyroscope
+} // namespace Bosch::BMI088_I2C::Gyroscope

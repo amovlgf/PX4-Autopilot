@@ -37,10 +37,10 @@
 
 using namespace time_literals;
 
-namespace Bosch::BMI088::Accelerometer
+namespace Bosch::BMI088_I2C::Accelerometer
 {
 BMI088_Accelerometer::BMI088_Accelerometer(const I2CSPIDriverConfig &config) :
-	BMI088(config),
+	BMI088_I2C(config),
 	_px4_accel(get_device_id(), config.rotation)
 {
 	if (config.drdy_gpio != 0) {
@@ -920,4 +920,4 @@ bool BMI088_Accelerometer::NormalRead(const hrt_abstime &timestamp_sample)
 	return true;
 }
 
-} // namespace Bosch::BMI088::Accelerometer
+} // namespace Bosch::BMI088_I2C::Accelerometer

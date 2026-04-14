@@ -39,10 +39,10 @@
 
 #include "Bosch_BMI088_Accelerometer_Registers.hpp"
 
-namespace Bosch::BMI088::Accelerometer
+namespace Bosch::BMI088_I2C::Accelerometer
 {
 
-class BMI088_Accelerometer : public BMI088
+class BMI088_Accelerometer : public BMI088_I2C
 {
 public:
 	BMI088_Accelerometer(const I2CSPIDriverConfig &config);
@@ -142,4 +142,4 @@ private:
 	};
 };
 
-} // namespace Bosch::BMI088::Accelerometer
+} // namespace Bosch::BMI088_I2C::Accelerometer

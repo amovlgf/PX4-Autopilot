@@ -1,0 +1,12 @@
+menuconfig SYSTEMCMDS_HW_TEST
+	bool "hw_test"
+	default n
+	---help---
+		Enable support for hw_test
+
+menuconfig USER_HW_TEST
+	bool "hw_test running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_HW_TEST
+	---help---
+		Put hw_test in userspace memory

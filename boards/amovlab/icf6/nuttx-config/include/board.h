@@ -418,6 +418,7 @@ UART8	DEBUG	/dev/ttyS6
 #define GPIO_CAN2_RX     GPIO_CAN2_RX_1     /* PB12  */
 #define GPIO_CAN2_TX     GPIO_CAN2_TX_1     /* PB13  */
 
+
 /* SPI
  * SPI1 is sensors
  * SPI2 is off board sensors

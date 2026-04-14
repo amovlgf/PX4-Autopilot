@@ -34,6 +34,18 @@
 set(romfs_src_dir ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root})
 set(romfs_gen_root_dir ${PX4_BINARY_DIR}/etc)
 
+# rc_input optional: factory-test images omit DRIVERS_RC_INPUT so RC UART is free for loopback FAT.
+if(CONFIG_DRIVERS_RC_INPUT)
+	set(ROMFS_RC_INPUT_START_LINE "rc_input start \$RC_INPUT_ARGS")
+else()
+	set(ROMFS_RC_INPUT_START_LINE "# rc_input not in this firmware; RC UART unused by driver")
+endif()
+configure_file(
+	${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d/rc.rc_input_cmd.in
+	${CMAKE_CURRENT_BINARY_DIR}/romfs_rc_input_cmd
+	@ONLY
+	)
+
 file(RELATIVE_PATH romfs_path_relative ${PX4_SOURCE_DIR} ${romfs_src_dir})
 message(STATUS "ROMFS: ${romfs_path_relative}")
 
@@ -308,9 +320,11 @@ add_custom_command(OUTPUT romfs_extras.stamp
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/romfs_extras/
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PX4_BINARY_DIR}/romfs_extras/ ${romfs_gen_root_dir}/extras/
 	${extras_copy_cmd}
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/romfs_rc_input_cmd ${romfs_gen_root_dir}/init.d/rc.rc_input_cmd
 	COMMAND ${CMAKE_COMMAND} -E touch romfs_extras.stamp
 	DEPENDS
 		romfs_copy.stamp
+		${CMAKE_CURRENT_BINARY_DIR}/romfs_rc_input_cmd
 		${config_romfs_extra_files}
 		${extras_dependencies}
 	COMMENT "ROMFS: copying extras"

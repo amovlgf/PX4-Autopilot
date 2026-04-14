@@ -40,12 +40,12 @@
 
 static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-class BMI088 : public device::I2C, public I2CSPIDriver<BMI088>
+class BMI088_I2C : public device::I2C, public I2CSPIDriver<BMI088_I2C>
 {
 public:
-	BMI088(const I2CSPIDriverConfig &config);
+	BMI088_I2C(const I2CSPIDriverConfig &config);
 
-	virtual ~BMI088() = default;
+	virtual ~BMI088_I2C() = default;
 
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
