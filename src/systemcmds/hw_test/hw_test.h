@@ -26,3 +26,9 @@ int test_i2c();
 int test_sd();
 int test_pwm();
 int test_um982_cfg(const char *dev, unsigned baud);
+
+/** UM982 产测默认串口固定为 TELEM2(/dev/ttyS1)。 */
+static inline const char *hw_test_um982_default_device()
+{
+	return "/dev/ttyS1";
+}

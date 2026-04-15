@@ -252,7 +252,8 @@ int test_spi()
 	const uint32_t d_icm_accel_err = seen.accel_icm_err_last - seen.accel_icm_err_first;
 	const uint32_t d_icm_gyro_err  = seen.gyro_icm_err_last - seen.gyro_icm_err_first;
 
-	const bool err_count_ready = seen.accel_bmi_err_init && seen.gyro_bmi_err_init && seen.accel_icm_err_init && seen.gyro_icm_err_init;
+	const bool err_count_ready = seen.accel_bmi_err_init && seen.gyro_bmi_err_init && seen.accel_icm_err_init
+				     && seen.gyro_icm_err_init;
 
 	if (err_count_ready) {
 		PX4_INFO("SPI err_count BMI(a:%" PRIu32 "->%" PRIu32 " d=%" PRIu32 ", g:%" PRIu32 "->%" PRIu32 " d=%" PRIu32 ")",

@@ -1,6 +1,9 @@
 #include "hw_test.h"
 
 #include <drivers/drv_hrt.h>
+#include <drivers/device/device.h>
+#include <uORB/topics/sensor_gps.h>
+#include <uORB/uORB.h>
 
 #include <poll.h>
 #include <fcntl.h>
@@ -21,6 +24,7 @@ static constexpr int kUartReadTimeoutMs = 500;
 static constexpr int kRetryCount = 3;
 static constexpr int kRetryIntervalUs = 25000;
 static constexpr unsigned kPostWriteSettleUs = 200;
+static constexpr int kGpsStatusWaitMs = 1500;
 
 static void uart_item_pass(const char *item)
 {
@@ -194,16 +198,72 @@ static int uart_loopback_once(const char *dev, int &out_errno, const char *&out_
 	return 0;
 }
 
+static int uart_check_ttys2_via_gps_status(int &out_errno, const char *&out_reason)
+{
+	out_errno = 0;
+	out_reason = nullptr;
+
+	const int sub = orb_subscribe(ORB_ID(sensor_gps));
+
+	if (sub < 0) {
+		out_errno = errno;
+		out_reason = "gps subscribe failed";
+		return -errno;
+	}
+
+	pollfd pfd {};
+	pfd.fd = sub;
+	pfd.events = POLLIN;
+
+	const int pr = poll(&pfd, 1, kGpsStatusWaitMs);
+	sensor_gps_s gps {};
+	bool got = false;
+
+	if (pr > 0 && (pfd.revents & POLLIN)) {
+		if (orb_copy(ORB_ID(sensor_gps), sub, &gps) == 0) {
+			got = true;
+		}
+	}
+
+	orb_unsubscribe(sub);
+
+	if (!got) {
+		out_reason = "gps status timeout";
+		return -ETIMEDOUT;
+	}
+
+	device::Device::DeviceId devid {};
+	devid.devid = gps.device_id;
+
+	if (devid.devid_s.bus_type != device::Device::DeviceBusType_SERIAL) {
+		out_reason = "gps not serial";
+		return -EIO;
+	}
+
+	/* ICF6: /dev/ttyS2 (GPS1) is shown as SERIAL:2 in sensor_gps device_id. */
+	if (devid.devid_s.bus != 2) {
+		out_reason = "gps not on /dev/ttyS2";
+		return -EIO;
+	}
+
+	/* `gps status` 的 OK 场景对应持续发布；NOT OK 常表现为长时间不更新。 */
+	if (hrt_elapsed_time(&gps.timestamp) > 2ULL * 1000ULL * 1000ULL) {
+		out_reason = "gps stale";
+		return -ETIMEDOUT;
+	}
+
+	return 0;
+}
+
 int test_uart()
 {
 	// Only test the UARTs that are physically looped back (RX/TX shorted) on ICF6.
 	// Mapping reference (boards/amovlab/icf6/nuttx-config/include/board.h):
 	// USART2 -> /dev/ttyS0
-	// USART3 -> /dev/ttyS1
 	// UART5  -> /dev/ttyS3
 	// USART6 -> /dev/ttyS4  (same loopback test; FAT image should not run rc_input on this port)
 	// UART7  -> /dev/ttyS5
-	static constexpr const char *loop_ports[] {"/dev/ttyS0", "/dev/ttyS1", "/dev/ttyS3", "/dev/ttyS4", "/dev/ttyS5"};
+	static constexpr const char *loop_ports[] {"/dev/ttyS0", "/dev/ttyS3", "/dev/ttyS4", "/dev/ttyS5"};
 	int ret = 0;
 
 	for (const char *dev : loop_ports) {
@@ -240,8 +300,38 @@ int test_uart()
 			} else {
 				uart_item_fail(dev, reason != nullptr ? reason : "unknown error");
 			}
+
 			PX4_ERR("[FAIL] %s %s (failed after %d attempts)", kTestName, dev, kRetryCount);
 			printf("[FAIL] %s %s (failed after %d attempts)\n", kTestName, dev, kRetryCount);
+
+			if (ret == 0) {
+				ret = r;
+			}
+		}
+	}
+
+	/* Additional UART check for /dev/ttyS2: judge by GPS status stream health. */
+	{
+		const char *dev = "/dev/ttyS2";
+		int saved_errno = 0;
+		const char *reason = nullptr;
+		const int r = uart_check_ttys2_via_gps_status(saved_errno, reason);
+
+		if (r == 0) {
+			PX4_INFO("UART %s gps status: OK", dev);
+			printf("UART %s gps status: OK\n", dev);
+			uart_item_pass(dev);
+
+		} else {
+			PX4_ERR("UART %s gps status: NOT OK", dev);
+			printf("UART %s gps status: NOT OK\n", dev);
+
+			if (saved_errno != 0 && reason != nullptr) {
+				uart_item_fail_errno(dev, reason, saved_errno);
+
+			} else {
+				uart_item_fail(dev, reason != nullptr ? reason : "gps status not ok");
+			}
 
 			if (ret == 0) {
 				ret = r;

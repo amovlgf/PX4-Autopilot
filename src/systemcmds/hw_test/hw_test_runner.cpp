@@ -35,7 +35,7 @@ int hw_test_run_target(const char *target)
 	}
 
 	if (strcmp(target, "um982_cfg") == 0) {
-		return test_um982_cfg("/dev/ttyS1", 115200);
+		return test_um982_cfg(hw_test_um982_default_device(), 115200);
 	}
 
 	PX4_ERR("unknown target: %s", target);
@@ -44,7 +44,7 @@ int hw_test_run_target(const char *target)
 
 int hw_test_run_all()
 {
-	const char *targets[] {"uart", "can", "spi", "i2c", "sd", "pwm"};
+	const char *targets[] {"um982_cfg", "can", "spi", "i2c", "sd", "pwm", "uart"};
 	int ret = 0;
 	constexpr size_t max_failures = sizeof(targets) / sizeof(targets[0]);
 	const char *failed_targets[max_failures] {};
@@ -71,7 +71,7 @@ int hw_test_run_all()
 		PX4_INFO("=======================        HW_TEST ALL: PASS        ========================");
 		PX4_INFO("================================================================================");
 		PX4_INFO("================================================================================");
-		PX4_INFO("  uart can spi i2c sd pwm - all targets passed");
+		PX4_INFO("  um982_cfg can spi i2c sd pwm uart - all targets passed");
 		PX4_INFO("================================================================================");
 		PX4_INFO("");
 
@@ -91,5 +91,6 @@ int hw_test_run_all()
 		PX4_ERR("================================================================================");
 		PX4_ERR("");
 	}
+
 	return ret;
 }

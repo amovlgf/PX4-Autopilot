@@ -98,6 +98,7 @@ static int can_iface_up(const char *ifname)
 	}
 
 	struct ifreq ifr_fl {};
+
 	(void)strncpy(ifr_fl.ifr_name, ifname, IFNAMSIZ - 1);
 
 	if (ioctl(fd, SIOCGIFFLAGS, &ifr_fl) == 0) {
@@ -166,6 +167,7 @@ static void can_reinit_iface_if_possible(const char *ifname)
 	}
 
 	struct ifreq ifr {};
+
 	(void)strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
 
 	if (ioctl(fd, SIOCGCANBITRATE, &ifr) == 0) {
@@ -200,6 +202,7 @@ static void can_apply_raw_sockopts(int fd, bool loopback_enable)
 	if (setsockopt(fd, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &fd_frames, sizeof(fd_frames)) < 0) {
 		PX4_WARN("CAN_RAW_FD_FRAMES=1 failed: %d", errno);
 	}
+
 #endif
 }
 
@@ -213,6 +216,7 @@ static int open_can_socket(const char *ifname, bool loopback_enable = false)
 	}
 
 	struct ifreq ifr_idx {};
+
 	(void)strncpy(ifr_idx.ifr_name, ifname, IFNAMSIZ - 1);
 
 	if (ioctl(fd, SIOCGIFINDEX, &ifr_idx) < 0) {
@@ -306,6 +310,7 @@ static int can_receive_frame(int fd, canid_t expected_id, const uint8_t expected
 				PX4_ERR("CAN read failed: errno=%d", errno);
 				return -errno;
 			}
+
 		} else {
 			PX4_ERR("CAN read short: nbytes=%ld", (long)nbytes);
 			return -EIO;
@@ -493,6 +498,7 @@ int test_can_ext()
 int test_can_tx(int bus, unsigned duration_s, unsigned period_ms, bool socket_loopback, bool /*ext_id*/)
 {
 #if defined(__PX4_NUTTX) && defined(CONFIG_NET_CAN)
+
 	if (bus != 0 && bus != 1) {
 		PX4_ERR("can_tx: bus must be 0 (can0 = FDCAN1 / CAN1) or 1 (can1 = FDCAN2)");
 		return -EINVAL;
@@ -549,6 +555,7 @@ int test_can_tx(int bus, unsigned duration_s, unsigned period_ms, bool socket_lo
 		if (socket_loopback) {
 			const ssize_t nw = write(fd, &tx, sizeof(tx));
 			ret = (nw < 0) ? -errno : ((static_cast<size_t>(nw) != sizeof(tx)) ? -EIO : 0);
+
 		} else {
 			/* sendmsg() + TX deadline avoids filling HW TX FIFO when no ACK on the bus */
 			ret = can_send_frame_with_deadline(fd, tx, 200);
@@ -592,6 +599,7 @@ int test_can_tx(int bus, unsigned duration_s, unsigned period_ms, bool socket_lo
 int test_can_rx(int bus, unsigned duration_s)
 {
 #if defined(__PX4_NUTTX) && defined(CONFIG_NET_CAN)
+
 	if (bus != 0 && bus != 1) {
 		PX4_ERR("can_rx: bus must be 0 or 1");
 		return -EINVAL;
@@ -635,16 +643,19 @@ int test_can_rx(int bus, unsigned duration_s)
 			++n_rx;
 
 #ifdef CONFIG_NET_CAN_CANFD
+
 		} else if (nr == static_cast<ssize_t>(sizeof(struct canfd_frame))) {
 			can_log_rx_frame_fd(rx_any);
 			++n_rx;
 #endif
+
 		} else if (nr < 0) {
 			if (errno != EAGAIN && errno != EWOULDBLOCK) {
 				PX4_ERR("can_rx read errno=%d", errno);
 				close(fd);
 				return -errno;
 			}
+
 		} else if (nr > 0) {
 			PX4_WARN("can_rx unexpected frame size: %ld", (long)nr);
 		}

@@ -16,9 +16,9 @@ static void print_usage()
 PX4 hardware FAT command.
 
 Usage:
-  hw_test_all                                     — run full suite (uart can spi i2c sd pwm)
+  hw_test_all                                     — run full suite (uart can spi i2c sd pwm um982_cfg)
   hw_test <uart|can|spi|i2c|sd|pwm>
-  hw_test um982_cfg [dev] [baud]                  — UM982 config via TELEM2 default /dev/ttyS1 @115200
+  hw_test um982_cfg [dev] [baud]                  — UM982; default uart = /dev/ttyS1 (TELEM2)
   hw_test can_ext                                 — alias of 'can' (Extended ID only)
   hw_test can_tx <0|1> [duration_s] [period_ms] [loopback] — CAN bench (Extended ID only; loopback=1: no bus ACK)
   hw_test can_rx <0|1> [duration_s]              — print frames received on one port
@@ -93,7 +93,7 @@ extern "C" __EXPORT int hw_test_main(int argc, char *argv[])
 	}
 
 	if (strcmp(argv[1], "um982_cfg") == 0) {
-		const char *dev = "/dev/ttyS1";
+		const char *dev = hw_test_um982_default_device();
 		unsigned baud = 115200;
 
 		if (argc > 2) {

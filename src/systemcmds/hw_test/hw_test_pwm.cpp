@@ -137,6 +137,7 @@ int test_pwm()
 			HW_TEST_PASS(kTestName);
 			return HW_TEST_OK;
 		}
+
 #endif
 
 		const int ret = run_actuator_test_fallback();
