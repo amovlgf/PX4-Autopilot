@@ -13,6 +13,7 @@
 
 #if defined(__PX4_NUTTX) && defined(CONFIG_ARCH_BOARD_AMOVLAB_ICF6)
 #include <stm32_gpio.h>
+#include <board_config.h>
 #endif
 
 static constexpr const char *kTestName = "PWM";
@@ -22,10 +23,26 @@ static constexpr uint16_t kPwmMinUs = 1000;
 static constexpr uint16_t kPwmMaxUs = 2000;
 static constexpr useconds_t kStepHoldUs = 350000; /* LED observation dwell per channel */
 static constexpr useconds_t kSettleUs = 120000;
+static constexpr unsigned kBlinkCount = 3;
 static constexpr float kActuatorOff = -1.f;
 static constexpr float kActuatorOn = 1.f;
 
 #if defined(__PX4_NUTTX) && defined(CONFIG_ARCH_BOARD_AMOVLAB_ICF6)
+static void buzzer_gpio_init()
+{
+#if defined(GPIO_BUZZER_1)
+	px4_arch_configgpio(GPIO_BUZZER_1);
+	px4_arch_gpiowrite(GPIO_BUZZER_1, 0);
+#endif
+}
+
+static void buzzer_gpio_write(bool high)
+{
+#if defined(GPIO_BUZZER_1)
+	px4_arch_gpiowrite(GPIO_BUZZER_1, high ? 1 : 0);
+#endif
+}
+
 /* ICF6 FMU_CH1..10 pins as plain GPIO outputs for LED high-level test */
 static constexpr uint32_t kIcf6PwmGpio[] {
 	/* CH1 */ (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN9),
@@ -42,17 +59,32 @@ static constexpr uint32_t kIcf6PwmGpio[] {
 
 static int run_gpio_high_fallback()
 {
+	buzzer_gpio_init();
+
 	/* init all as output low first */
 	for (unsigned i = 0; i < sizeof(kIcf6PwmGpio) / sizeof(kIcf6PwmGpio[0]); i++) {
 		px4_arch_configgpio(kIcf6PwmGpio[i]);
 		px4_arch_gpiowrite(kIcf6PwmGpio[i], 0);
 	}
 
-	for (unsigned i = 0; i < sizeof(kIcf6PwmGpio) / sizeof(kIcf6PwmGpio[0]); i++) {
-		px4_arch_gpiowrite(kIcf6PwmGpio[i], 1);
-		PX4_INFO("PWM GPIO fallback CH%u HIGH", i + 1);
+	for (unsigned b = 0; b < kBlinkCount; b++) {
+		for (unsigned i = 0; i < sizeof(kIcf6PwmGpio) / sizeof(kIcf6PwmGpio[0]); i++) {
+			px4_arch_gpiowrite(kIcf6PwmGpio[i], 1);
+		}
+
+		buzzer_gpio_write(true);
+
+		PX4_INFO("PWM GPIO fallback ALL HIGH + BUZZER HIGH (%u/%u)", b + 1, kBlinkCount);
 		px4_usleep(kStepHoldUs);
-		px4_arch_gpiowrite(kIcf6PwmGpio[i], 0);
+
+		for (unsigned i = 0; i < sizeof(kIcf6PwmGpio) / sizeof(kIcf6PwmGpio[0]); i++) {
+			px4_arch_gpiowrite(kIcf6PwmGpio[i], 0);
+		}
+
+		buzzer_gpio_write(false);
+
+		PX4_INFO("PWM GPIO fallback ALL LOW + BUZZER LOW (%u/%u)", b + 1, kBlinkCount);
+		px4_usleep(kStepHoldUs);
 	}
 
 	PX4_INFO("PWM GPIO fallback done");
@@ -62,38 +94,51 @@ static int run_gpio_high_fallback()
 
 static int run_actuator_test_fallback()
 {
+	buzzer_gpio_init();
 	uORB::Publication<actuator_test_s> pub{ORB_ID(actuator_test)};
 	actuator_test_s msg {};
 	msg.action = actuator_test_s::ACTION_DO_CONTROL;
 	msg.timeout_ms = 500;
 	msg.value = kActuatorOff;
 
-	for (int i = 0; i < actuator_test_s::MAX_NUM_MOTORS; i++) {
-		msg.timestamp = hrt_absolute_time();
-		msg.function = actuator_test_s::FUNCTION_MOTOR1 + i;
-		msg.value = kActuatorOn;
-		pub.publish(msg);
-		PX4_INFO("PWM fallback MOTOR%u active", i + 1);
+	for (unsigned b = 0; b < kBlinkCount; b++) {
+		for (int i = 0; i < actuator_test_s::MAX_NUM_MOTORS; i++) {
+			msg.timestamp = hrt_absolute_time();
+			msg.function = actuator_test_s::FUNCTION_MOTOR1 + i;
+			msg.value = kActuatorOn;
+			pub.publish(msg);
+		}
+
+		for (int i = 0; i < actuator_test_s::MAX_NUM_SERVOS; i++) {
+			msg.timestamp = hrt_absolute_time();
+			msg.function = actuator_test_s::FUNCTION_SERVO1 + i;
+			msg.value = kActuatorOn;
+			pub.publish(msg);
+		}
+
+		buzzer_gpio_write(true);
+
+		PX4_INFO("PWM fallback ALL ON + BUZZER HIGH (%u/%u)", b + 1, kBlinkCount);
 		px4_usleep(kStepHoldUs);
 
-		msg.timestamp = hrt_absolute_time();
-		msg.function = actuator_test_s::FUNCTION_MOTOR1 + i;
-		msg.value = kActuatorOff;
-		pub.publish(msg);
-	}
+		for (int i = 0; i < actuator_test_s::MAX_NUM_MOTORS; i++) {
+			msg.timestamp = hrt_absolute_time();
+			msg.function = actuator_test_s::FUNCTION_MOTOR1 + i;
+			msg.value = kActuatorOff;
+			pub.publish(msg);
+		}
 
-	for (int i = 0; i < actuator_test_s::MAX_NUM_SERVOS; i++) {
-		msg.timestamp = hrt_absolute_time();
-		msg.function = actuator_test_s::FUNCTION_SERVO1 + i;
-		msg.value = kActuatorOn;
-		pub.publish(msg);
-		PX4_INFO("PWM fallback SERVO%u active", i + 1);
+		for (int i = 0; i < actuator_test_s::MAX_NUM_SERVOS; i++) {
+			msg.timestamp = hrt_absolute_time();
+			msg.function = actuator_test_s::FUNCTION_SERVO1 + i;
+			msg.value = kActuatorOff;
+			pub.publish(msg);
+		}
+
+		buzzer_gpio_write(false);
+
+		PX4_INFO("PWM fallback ALL OFF + BUZZER LOW (%u/%u)", b + 1, kBlinkCount);
 		px4_usleep(kStepHoldUs);
-
-		msg.timestamp = hrt_absolute_time();
-		msg.function = actuator_test_s::FUNCTION_SERVO1 + i;
-		msg.value = kActuatorOff;
-		pub.publish(msg);
 	}
 
 	/* release all channels */
@@ -112,7 +157,7 @@ static int run_actuator_test_fallback()
 		pub.publish(msg);
 	}
 
-	PX4_INFO("PWM fallback done: verify LEDs stepped in order");
+	PX4_INFO("PWM fallback done: verify ALL channels blinked 3 times");
 	return HW_TEST_OK;
 }
 
@@ -153,6 +198,9 @@ int test_pwm()
 
 	up_pwm_servo_arm(true, 0);
 	px4_usleep(kSettleUs);
+#if defined(__PX4_NUTTX) && defined(CONFIG_ARCH_BOARD_AMOVLAB_ICF6)
+	buzzer_gpio_init();
+#endif
 
 	unsigned channels[kProbeMaxChannels] {};
 	unsigned n_channels = 0;
@@ -170,23 +218,38 @@ int test_pwm()
 		return -ENODEV;
 	}
 
-	PX4_INFO("PWM test: %u channels detected, stepping each channel (%u->%u us)", n_channels, kPwmMinUs, kPwmMaxUs);
+	PX4_INFO("PWM test: %u channels detected, all channels blink %u times (%u/%u us)",
+		 n_channels, kBlinkCount, kPwmMaxUs, kPwmMinUs);
 
-	/* Visual test pattern: one channel ON (max), others OFF (min). */
-	for (unsigned idx = 0; idx < n_channels; idx++) {
-		const unsigned active = channels[idx];
-
+	for (unsigned b = 0; b < kBlinkCount; b++) {
 		for (unsigned j = 0; j < n_channels; j++) {
-			const uint16_t pulse = (channels[j] == active) ? kPwmMaxUs : kPwmMinUs;
-
-			if (up_pwm_servo_set(channels[j], pulse) != 0) {
+			if (up_pwm_servo_set(channels[j], kPwmMaxUs) != 0) {
 				up_pwm_servo_arm(false, 0);
-				HW_TEST_FAIL(kTestName, "set pwm ch%u failed", channels[j]);
+				HW_TEST_FAIL(kTestName, "set pwm ch%u high failed", channels[j]);
 				return -EIO;
 			}
 		}
 
-		PX4_INFO("PWM CH%u active (%u us), others %u us", active + 1, kPwmMaxUs, kPwmMinUs);
+#if defined(__PX4_NUTTX) && defined(CONFIG_ARCH_BOARD_AMOVLAB_ICF6)
+		buzzer_gpio_write(true);
+#endif
+
+		PX4_INFO("PWM ALL HIGH + BUZZER HIGH (%u/%u)", b + 1, kBlinkCount);
+		px4_usleep(kStepHoldUs);
+
+		for (unsigned j = 0; j < n_channels; j++) {
+			if (up_pwm_servo_set(channels[j], kPwmMinUs) != 0) {
+				up_pwm_servo_arm(false, 0);
+				HW_TEST_FAIL(kTestName, "set pwm ch%u low failed", channels[j]);
+				return -EIO;
+			}
+		}
+
+#if defined(__PX4_NUTTX) && defined(CONFIG_ARCH_BOARD_AMOVLAB_ICF6)
+		buzzer_gpio_write(false);
+#endif
+
+		PX4_INFO("PWM ALL LOW + BUZZER LOW (%u/%u)", b + 1, kBlinkCount);
 		px4_usleep(kStepHoldUs);
 	}
 
@@ -194,6 +257,10 @@ int test_pwm()
 	for (unsigned j = 0; j < n_channels; j++) {
 		(void)up_pwm_servo_set(channels[j], kPwmMinUs);
 	}
+
+#if defined(__PX4_NUTTX) && defined(CONFIG_ARCH_BOARD_AMOVLAB_ICF6)
+	buzzer_gpio_write(false);
+#endif
 
 	up_pwm_servo_arm(false, 0);
 	HW_TEST_PASS(kTestName);
