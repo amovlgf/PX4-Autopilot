@@ -221,7 +221,8 @@ static bool response_ok_for_command(const char *accum, const char *cmd_tag);
  * @param max_total_ms 总等待毫秒，<0 则用 kRxMaxTotalMs
  * @param rx_idle_ms 收到字节后 poll 空闲毫秒，<0 则用 kRxIdleMs
  */
-static int read_response_expect_ok(int fd, const char *cmd_tag, int max_total_ms = -1, int rx_idle_ms = -1)
+static int read_response_expect_ok(int fd, const char *cmd_tag, int max_total_ms = -1, int rx_idle_ms = -1,
+				   bool log_on_fail = true)
 {
 	if (max_total_ms < 0) {
 		max_total_ms = kRxMaxTotalMs;
@@ -275,8 +276,11 @@ static int read_response_expect_ok(int fd, const char *cmd_tag, int max_total_ms
 
 	if (!got_any) {
 		/* LogMessage 仅 127B，长句会被截断，拆成两行 */
-		PX4_ERR("UM982 FAIL: [%s] zero RX bytes, timeout %d ms", cmd_tag, max_total_ms);
-		PX4_ERR("UM982: not missing-OK; check uart wire/baud/conflict");
+		if (log_on_fail) {
+			PX4_ERR("UM982 FAIL: [%s] zero RX bytes, timeout %d ms", cmd_tag, max_total_ms);
+			PX4_ERR("UM982: not missing-OK; check uart wire/baud/conflict");
+		}
+
 		return -ETIMEDOUT;
 	}
 
@@ -284,9 +288,11 @@ static int read_response_expect_ok(int fd, const char *cmd_tag, int max_total_ms
 		return 0;
 	}
 
-	PX4_ERR("UM982 FAIL: [%s] got %zu B, no substring %s", cmd_tag, a, kResponseOk);
+	if (log_on_fail) {
+		PX4_ERR("UM982 FAIL: [%s] got %zu B, no substring %s", cmd_tag, a, kResponseOk);
+		PX4_ERR("UM982: see UM982 rx lines above (garbled/wrong fmt?)");
+	}
 
-	PX4_ERR("UM982: see UM982 rx lines above (garbled/wrong fmt?)");
 	return -EIO;
 }
 
@@ -382,7 +388,7 @@ int test_um982_cfg(const char *dev, unsigned baud)
 		const bool is_cfg_com1_230400 = (strcmp(tag, "config com1 230400") == 0);
 		const bool is_saveconfig = (strcmp(tag, "saveconfig") == 0);
 		int rr = is_freset ? read_response_expect_ok(fd, tag, kRxMaxTotalMsFreset, kRxIdleMsFreset)
-			 : is_cfg_com1_230400 ? read_response_expect_ok(fd, tag, kRxMaxTotalMsCom1Cfg, kRxIdleMsFreset)
+			 : is_cfg_com1_230400 ? read_response_expect_ok(fd, tag, kRxMaxTotalMsCom1Cfg, kRxIdleMsFreset, false)
 			 : is_saveconfig ? read_response_expect_ok(fd, tag, kRxMaxTotalMsSaveconfig, kRxIdleMsFreset)
 			 : read_response_expect_ok(fd, tag);
 

@@ -263,7 +263,8 @@ int test_uart()
 	// UART5  -> /dev/ttyS3
 	// USART6 -> /dev/ttyS4  (same loopback test; FAT image should not run rc_input on this port)
 	// UART7  -> /dev/ttyS5
-	static constexpr const char *loop_ports[] {"/dev/ttyS0", "/dev/ttyS3", "/dev/ttyS4", "/dev/ttyS5"};
+	// UART8  -> /dev/ttyS6
+	static constexpr const char *loop_ports[] {"/dev/ttyS0", "/dev/ttyS3", "/dev/ttyS4", "/dev/ttyS5", "/dev/ttyS6"};
 	int ret = 0;
 
 	for (const char *dev : loop_ports) {

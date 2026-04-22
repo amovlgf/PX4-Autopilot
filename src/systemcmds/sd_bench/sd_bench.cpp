@@ -61,7 +61,7 @@ typedef struct sdb_config {
 } sdb_config_t;
 
 /** sequential write speed test */
-static void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size);
+static int write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size);
 /** sequential read speed test */
 static int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size);
 
@@ -171,7 +171,18 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 	}
 
 	PX4_INFO("Using block size = %i bytes, sync=%i", block_size, (int)cfg.synchronized);
-	write_test(bench_fd, &cfg, block, block_size);
+	const int write_ret = write_test(bench_fd, &cfg, block, block_size);
+
+	if (write_ret != 0) {
+		free(block);
+		close(bench_fd);
+
+		if (!keep) {
+			unlink(BENCHMARK_FILE);
+		}
+
+		return write_ret;
+	}
 
 	if (verify) {
 		fsync(bench_fd);
@@ -196,7 +207,7 @@ unsigned int time_fsync(int fd)
 	return hrt_elapsed_time(&fsync_start) / 1000;
 }
 
-void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
+int write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 {
 	PX4_INFO("");
 	PX4_INFO("Testing Sequential Write Speed...");
@@ -225,7 +236,7 @@ void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 
 			if ((int)written != block_size) {
 				PX4_ERR("Write error: %d", errno);
-				return;
+				return -EIO;
 			}
 
 			if (cfg->synchronized) {
@@ -254,6 +265,7 @@ void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 	cfg->total_blocks_written = total_blocks;
 	PX4_INFO("  Avg   : %8.2lf KB/s", (double)block_size * total_blocks / total_elapsed / 1024.);
 	PX4_INFO("  Overall max write time: %i ms", max_max_write_time);
+	return 0;
 }
 
 int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)

@@ -3,6 +3,13 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
+# Factory default params on SD card (first boot only).
+# Must be PX4 BSON (same as main params file), NOT QGroundControl text ".params".
+# Golden board: param save /fs/microsd/etc/factory_params.bson then copy to SD image.
+set FACTORY_PARAM_FILE /fs/microsd/etc/factory_params.bson
+set FACTORY_PARAM_LEGACY_TEXT /fs/microsd/etc/factory_params.params
+set FACTORY_PARAM_DONE_FILE /fs/microsd/etc/factory_params.imported
+
 if ver hwtypecmp ICF6000000
 then
 	param set-default SYS_AUTOSTART 4014
@@ -13,3 +20,35 @@ param set-default BAT1_A_PER_V 36.367515152
 
 # Multicopter Position Control control and Land Detector
 param set-default MPC_LAND_CRWL 0.5
+
+# Hint if only legacy QGC text file is present (param import cannot read it)
+if [ -f "$FACTORY_PARAM_LEGACY_TEXT" ]
+then
+	if [ ! -f "$FACTORY_PARAM_FILE" ]
+	then
+		echo "ICF6: $FACTORY_PARAM_LEGACY_TEXT is QGC text; use BSON as $FACTORY_PARAM_FILE (golden: param save ...)"
+	fi
+fi
+
+# Import factory defaults from SD only once (for production incoming inspection)
+# Use nested if (avoid [ a -a b ] which some NSH builds handle poorly)
+if [ -f "$FACTORY_PARAM_FILE" ]
+then
+	if [ ! -f "$FACTORY_PARAM_DONE_FILE" ]
+	then
+		echo "ICF6: importing factory params from $FACTORY_PARAM_FILE"
+
+		if param import "$FACTORY_PARAM_FILE"
+		then
+			param save
+			echo "done" > "$FACTORY_PARAM_DONE_FILE"
+			echo "ICF6: factory params import OK"
+		else
+			echo "ICF6: factory params import FAILED (file must be PX4 BSON, not QGC .params text)"
+		fi
+	fi
+fi
+
+unset FACTORY_PARAM_FILE
+unset FACTORY_PARAM_LEGACY_TEXT
+unset FACTORY_PARAM_DONE_FILE

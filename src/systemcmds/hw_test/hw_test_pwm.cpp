@@ -23,7 +23,7 @@ static constexpr uint16_t kPwmMinUs = 1000;
 static constexpr uint16_t kPwmMaxUs = 2000;
 static constexpr useconds_t kStepHoldUs = 350000; /* LED observation dwell per channel */
 static constexpr useconds_t kSettleUs = 120000;
-static constexpr unsigned kBlinkCount = 3;
+static constexpr unsigned kBlinkCount = 5;
 static constexpr float kActuatorOff = -1.f;
 static constexpr float kActuatorOn = 1.f;
 
