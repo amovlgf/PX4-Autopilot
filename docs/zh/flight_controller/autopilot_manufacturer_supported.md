@@ -15,7 +15,6 @@ The boards in this category are:
 - [Accton Godwit GA1](../flight_controller/accton-godwit_ga1.md)
 - [AirMind MindPX](../flight_controller/mindpx.md)
 - [AirMind MindRacer](../flight_controller/mindracer.md)
-- [Amovlab Flycore](../flight_controller/amovlab_flycore.md)
 - [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md) (and [ARK Electronics Pixhawk Autopilot Bus Carrier](../flight_controller/ark_pab.md))
 - [ARK FPV Flight Controller](../flight_controller/ark_fpv.md)
 - [ARK Pi6X Flow Flight Controller](../flight_controller/ark_pi6x.md)
