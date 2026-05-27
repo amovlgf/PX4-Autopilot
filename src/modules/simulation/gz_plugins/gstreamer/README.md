@@ -50,9 +50,9 @@ For RTMP streams, you can use any RTMP-compatible player, such as:
 ## Multi-vehicle simulation
 
 The port specified in the SDF file is used as a base port. Each instance gets base_port + instance_index:
-| Instance | Port |
+| Instance | Port | 
 |----------|------|
-| 0        | 5600 |
+| 0        | 5600 | 
 | 1        | 5601 |
 | 2        | 5602 |
 
