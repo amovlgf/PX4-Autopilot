@@ -13,7 +13,7 @@ Unlike for other vehicle types you will need to install it as custom firmware.
 For more information see [Flashing the Rover Build](../config_rover/index.md#flashing-the-rover-build).
 :::
 
-![Rovers](../../assets/airframes/rover/rovers.png)
+![Rovers](../../assets/airframes/rover/hiwonder_rovers/hiwonder_rovers.png)
 
 PX4 provides support for the three most common types of rovers:
 
@@ -36,7 +36,7 @@ This kind of steering is used on most commercial vehicles, including cars, truck
 PX4 does not require that the vehicle uses the Ackermann geometry and will work with any front-steering rover.
 :::
 
-![Axial Trail Honcho](../../assets/airframes/rover/axial_trail_honcho.png)
+![Ackermann rover](../../assets/airframes/rover/hiwonder_rovers/hiwonder_ackermann.png)
 
 ## Differential
 
@@ -59,7 +59,7 @@ The differential setup also work for rovers with skid or tank steering.
 A Mecanum rover is a type of mobile robot that uses Mecanum wheels to achieve omnidirectional movement. These wheels are unique because they have rollers mounted at a 45-degree angle around their circumference, allowing the rover to move not only forward and backward but also side-to-side and diagonally without needing to rotate first.
 Each wheel is driven by its own motor, and by controlling the speed and direction of each motor, the rover can move in any direction or spin in place.
 
-![Mecanum rover](../../assets/airframes/rover/rover_mecanum.png)
+![Mecanum rover](../../assets/airframes/rover/hiwonder_rovers/hiwonder_mecanum.png)
 
 ## See Also
 
