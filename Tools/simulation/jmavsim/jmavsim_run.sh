@@ -71,7 +71,21 @@ if [ "$HEADLESS" = "1" ]; then
     extra_args="$extra_args -no-gui"
 fi
 
+# Apply the AMOVLAB visualization extensions to the checked-out jMAVSim source.
+cp "$SCRIPT_DIR/overrides/src/me/drton/jmavsim/KinematicObject.java" \
+	"src/me/drton/jmavsim/KinematicObject.java"
+cp "$SCRIPT_DIR/overrides/src/me/drton/jmavsim/Simulator.java" \
+	"src/me/drton/jmavsim/Simulator.java"
+cp "$SCRIPT_DIR/overrides/src/me/drton/jmavsim/vehicle/AbstractMulticopter.java" \
+	"src/me/drton/jmavsim/vehicle/AbstractMulticopter.java"
+
 ant create_run_jar copy_res
+
+# Replace the default multicopter visual model and install the animated propellers.
+cp "$SCRIPT_DIR/models/amovlab_custom.obj" out/production/models/3dr_arducopter_quad_x.obj
+cp "$SCRIPT_DIR/models/amovlab_custom.mtl" out/production/models/amovlab_custom.mtl
+cp "$SCRIPT_DIR"/models/amovlab_prop_*.obj out/production/models/
+
 cd out/production
 
 java --add-exports java.base/java.lang=ALL-UNNAMED --add-exports java.desktop/sun.awt=ALL-UNNAMED --add-exports java.desktop/sun.java2d=ALL-UNNAMED \
