@@ -15,9 +15,9 @@
  *      - 最近更新时间 <= 200 ms（kSpiFreshWindowUs）
  *   4) FRAM 路径可访问：
  *      - open("/fs/mtd_params", O_RDONLY) 成功
- *   5) 若 error_count 基线完整：
+ *   5) 四路 error_count 基线必须完整：
  *      - 检查窗口内 error_count 增量必须为 0（任何增长判 FAIL）
- *      - 若基线不完整，仅告警并跳过增量判定
+ *      - 基线缺失直接判 FAIL
  *
  * 输出含义
  *   - SPI IMU detect:      四项识别状态
@@ -51,6 +51,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_sensor.h>
+#include <lib/drivers/device/Device.hpp>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -75,6 +76,13 @@ static uint8_t device_type_from_id(uint32_t device_id)
 	}
 
 	return devtype;
+}
+
+static bool device_is_on_bus_type(uint32_t device_id, device::Device::DeviceBusType bus_type)
+{
+	device::Device::DeviceId devid{};
+	devid.devid = device_id;
+	return devid.devid_s.bus_type == bus_type;
 }
 
 struct SpiSensorSeen {
@@ -116,20 +124,24 @@ static SpiSensorSeen wait_for_spi_sensor_status()
 				const uint8_t acc_dt = device_type_from_id(msg.accel_device_id);
 				const uint8_t gyr_dt = device_type_from_id(msg.gyro_device_id);
 
-				if (acc_dt == DRV_ACC_DEVTYPE_BMI088) {
+				if (device_is_on_bus_type(msg.accel_device_id, device::Device::DeviceBusType_SPI)
+				    && acc_dt == DRV_ACC_DEVTYPE_BMI088) {
 					seen.accel_bmi = true;
 					seen.accel_bmi_last = msg.timestamp;
 
-				} else if (acc_dt == DRV_IMU_DEVTYPE_ICM42688P) {
+				} else if (device_is_on_bus_type(msg.accel_device_id, device::Device::DeviceBusType_SPI)
+					   && acc_dt == DRV_IMU_DEVTYPE_ICM42688P) {
 					seen.accel_icm = true;
 					seen.accel_icm_last = msg.timestamp;
 				}
 
-				if (gyr_dt == DRV_GYR_DEVTYPE_BMI088) {
+				if (device_is_on_bus_type(msg.gyro_device_id, device::Device::DeviceBusType_SPI)
+				    && gyr_dt == DRV_GYR_DEVTYPE_BMI088) {
 					seen.gyro_bmi = true;
 					seen.gyro_bmi_last = msg.timestamp;
 
-				} else if (gyr_dt == DRV_IMU_DEVTYPE_ICM42688P) {
+				} else if (device_is_on_bus_type(msg.gyro_device_id, device::Device::DeviceBusType_SPI)
+					   && gyr_dt == DRV_IMU_DEVTYPE_ICM42688P) {
 					seen.gyro_icm = true;
 					seen.gyro_icm_last = msg.timestamp;
 				}
@@ -142,7 +154,8 @@ static SpiSensorSeen wait_for_spi_sensor_status()
 			while (accel_subs[i].update(&msg)) {
 				const uint8_t dt = device_type_from_id(msg.device_id);
 
-				if (dt == DRV_ACC_DEVTYPE_BMI088) {
+				if (device_is_on_bus_type(msg.device_id, device::Device::DeviceBusType_SPI)
+				    && dt == DRV_ACC_DEVTYPE_BMI088) {
 					seen.accel_bmi = true;
 					seen.accel_bmi_last = msg.timestamp;
 					seen.accel_bmi_err_last = msg.error_count;
@@ -152,7 +165,8 @@ static SpiSensorSeen wait_for_spi_sensor_status()
 						seen.accel_bmi_err_init = true;
 					}
 
-				} else if (dt == DRV_IMU_DEVTYPE_ICM42688P) {
+				} else if (device_is_on_bus_type(msg.device_id, device::Device::DeviceBusType_SPI)
+					   && dt == DRV_IMU_DEVTYPE_ICM42688P) {
 					seen.accel_icm = true;
 					seen.accel_icm_last = msg.timestamp;
 					seen.accel_icm_err_last = msg.error_count;
@@ -171,7 +185,8 @@ static SpiSensorSeen wait_for_spi_sensor_status()
 			while (gyro_subs[i].update(&msg)) {
 				const uint8_t dt = device_type_from_id(msg.device_id);
 
-				if (dt == DRV_GYR_DEVTYPE_BMI088) {
+				if (device_is_on_bus_type(msg.device_id, device::Device::DeviceBusType_SPI)
+				    && dt == DRV_GYR_DEVTYPE_BMI088) {
 					seen.gyro_bmi = true;
 					seen.gyro_bmi_last = msg.timestamp;
 					seen.gyro_bmi_err_last = msg.error_count;
@@ -181,7 +196,8 @@ static SpiSensorSeen wait_for_spi_sensor_status()
 						seen.gyro_bmi_err_init = true;
 					}
 
-				} else if (dt == DRV_IMU_DEVTYPE_ICM42688P) {
+				} else if (device_is_on_bus_type(msg.device_id, device::Device::DeviceBusType_SPI)
+					   && dt == DRV_IMU_DEVTYPE_ICM42688P) {
 					seen.gyro_icm = true;
 					seen.gyro_icm_last = msg.timestamp;
 					seen.gyro_icm_err_last = msg.error_count;
@@ -191,13 +207,6 @@ static SpiSensorSeen wait_for_spi_sensor_status()
 						seen.gyro_icm_err_init = true;
 					}
 				}
-			}
-		}
-
-		if (seen.accel_bmi && seen.accel_icm && seen.gyro_bmi && seen.gyro_icm) {
-			/* Keep collecting a bit longer so error_count baselines are likely initialized too. */
-			if ((hrt_elapsed_time(&start) / 1000) > (kSpiSensorWaitMs / 2)) {
-				return seen;
 			}
 		}
 
@@ -247,31 +256,31 @@ int test_spi()
 		return -ETIMEDOUT;
 	}
 
+	const bool err_count_ready = seen.accel_bmi_err_init && seen.gyro_bmi_err_init && seen.accel_icm_err_init
+				     && seen.gyro_icm_err_init;
+
+	if (!err_count_ready) {
+		HW_TEST_FAIL(kTestName, "IMU error_count baseline missing");
+		return -ENODATA;
+	}
+
 	const uint32_t d_bmi_accel_err = seen.accel_bmi_err_last - seen.accel_bmi_err_first;
 	const uint32_t d_bmi_gyro_err  = seen.gyro_bmi_err_last - seen.gyro_bmi_err_first;
 	const uint32_t d_icm_accel_err = seen.accel_icm_err_last - seen.accel_icm_err_first;
 	const uint32_t d_icm_gyro_err  = seen.gyro_icm_err_last - seen.gyro_icm_err_first;
 
-	const bool err_count_ready = seen.accel_bmi_err_init && seen.gyro_bmi_err_init && seen.accel_icm_err_init
-				     && seen.gyro_icm_err_init;
+	PX4_INFO("SPI err_count BMI(a:%" PRIu32 "->%" PRIu32 " d=%" PRIu32 ", g:%" PRIu32 "->%" PRIu32 " d=%" PRIu32 ")",
+		 seen.accel_bmi_err_first, seen.accel_bmi_err_last, d_bmi_accel_err,
+		 seen.gyro_bmi_err_first, seen.gyro_bmi_err_last, d_bmi_gyro_err);
+	PX4_INFO("SPI err_count ICM(a:%" PRIu32 "->%" PRIu32 " d=%" PRIu32 ", g:%" PRIu32 "->%" PRIu32 " d=%" PRIu32 ")",
+		 seen.accel_icm_err_first, seen.accel_icm_err_last, d_icm_accel_err,
+		 seen.gyro_icm_err_first, seen.gyro_icm_err_last, d_icm_gyro_err);
 
-	if (err_count_ready) {
-		PX4_INFO("SPI err_count BMI(a:%" PRIu32 "->%" PRIu32 " d=%" PRIu32 ", g:%" PRIu32 "->%" PRIu32 " d=%" PRIu32 ")",
-			 seen.accel_bmi_err_first, seen.accel_bmi_err_last, d_bmi_accel_err,
-			 seen.gyro_bmi_err_first, seen.gyro_bmi_err_last, d_bmi_gyro_err);
-		PX4_INFO("SPI err_count ICM(a:%" PRIu32 "->%" PRIu32 " d=%" PRIu32 ", g:%" PRIu32 "->%" PRIu32 " d=%" PRIu32 ")",
-			 seen.accel_icm_err_first, seen.accel_icm_err_last, d_icm_accel_err,
-			 seen.gyro_icm_err_first, seen.gyro_icm_err_last, d_icm_gyro_err);
-
-		if ((d_bmi_accel_err > 0) || (d_bmi_gyro_err > 0) || (d_icm_accel_err > 0) || (d_icm_gyro_err > 0)) {
-			HW_TEST_FAIL(kTestName,
-				     "IMU error_count increased (BMI a:%" PRIu32 " g:%" PRIu32 ", ICM a:%" PRIu32 " g:%" PRIu32 ")",
-				     d_bmi_accel_err, d_bmi_gyro_err, d_icm_accel_err, d_icm_gyro_err);
-			return -EIO;
-		}
-
-	} else {
-		PX4_DEBUG("SPI IMU error_count topics incomplete, skip delta check");
+	if ((d_bmi_accel_err > 0) || (d_bmi_gyro_err > 0) || (d_icm_accel_err > 0) || (d_icm_gyro_err > 0)) {
+		HW_TEST_FAIL(kTestName,
+			     "IMU error_count increased (BMI a:%" PRIu32 " g:%" PRIu32 ", ICM a:%" PRIu32 " g:%" PRIu32 ")",
+			     d_bmi_accel_err, d_bmi_gyro_err, d_icm_accel_err, d_icm_gyro_err);
+		return -EIO;
 	}
 
 	HW_TEST_PASS(kTestName);

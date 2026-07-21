@@ -558,7 +558,8 @@ bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 	}
 
 	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf) +
+				   perf_event_count(_fifo_reset_perf));
 
 	if (accel.samples > 0) {
 		_px4_accel.updateFIFO(accel);

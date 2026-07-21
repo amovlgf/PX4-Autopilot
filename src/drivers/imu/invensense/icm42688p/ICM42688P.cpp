@@ -760,7 +760,8 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 	}
 
 	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf) +
+				   perf_event_count(_fifo_reset_perf));
 
 	if (accel.samples > 0) {
 		_px4_accel.updateFIFO(accel);
@@ -854,7 +855,8 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 	}
 
 	_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+				  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf) +
+				  perf_event_count(_fifo_reset_perf));
 
 	if (gyro.samples > 0) {
 		_px4_gyro.updateFIFO(gyro);

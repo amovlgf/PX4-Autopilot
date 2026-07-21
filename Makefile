@@ -234,6 +234,15 @@ $(CONFIG_TARGETS_DEFAULT):
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
 
+.PHONY: amovlab_icf6_test_combined
+amovlab_icf6_test_combined:
+	$(MAKE) amovlab_icf6_bootloader
+	$(MAKE) amovlab_icf6_test
+	python3 boards/amovlab/icf6/pack_combined_firmware.py \
+		--bootloader boards/amovlab/icf6/extras/amovlab_icf6_bootloader.bin \
+		--application build/amovlab_icf6_test/amovlab_icf6_test.bin \
+		--output build/amovlab_icf6_test/amovlab_icf6_test_combined.bin
+
 updateconfig:
 	@./Tools/kconfig/updateconfig.py
 
