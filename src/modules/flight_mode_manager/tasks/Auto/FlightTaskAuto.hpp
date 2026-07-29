@@ -40,6 +40,7 @@
 #pragma once
 
 #include "FlightTask.hpp"
+#include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/home_position.h>
@@ -124,6 +125,7 @@ protected:
 	uORB::SubscriptionData<home_position_s>			_sub_home_position {ORB_ID(home_position)};
 	uORB::SubscriptionData<vehicle_status_s>		_sub_vehicle_status{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<takeoff_status_s>		_takeoff_status_sub{ORB_ID(takeoff_status)};
+	uORB::SubscriptionData<control_allocator_status_s>	_control_allocator_status_sub{ORB_ID(control_allocator_status)};
 
 	float _target_acceptance_radius{0.0f}; /**< Acceptances radius of the target */
 
@@ -133,6 +135,7 @@ protected:
 	uint8_t _nav_state_prev{0};
 	HeadingSmoothing _heading_smoothing;
 	bool _yaw_sp_aligned{false};
+	uint16_t _active_motor_failure_mask{0};
 
 	PositionSmoothing _position_smoothing;
 	Vector3f _unsmoothed_velocity_setpoint;
@@ -169,7 +172,9 @@ protected:
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
-					(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t
+					(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t,
+					(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
+					(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_ca_rotor_count
 				       );
 
 private:
@@ -193,6 +198,7 @@ private:
 	matrix::Vector3f _initial_land_position;
 
 	void _smoothYaw(); /**< Smoothen the yaw setpoint. */
+	void _applyMotorFailureDegradedYaw();
 	bool _evaluatePositionSetpointTriplet();
 	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */

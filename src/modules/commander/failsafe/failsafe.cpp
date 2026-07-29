@@ -699,7 +699,13 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	}
 
 	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, Action::Warn);
-	CHECK_FAILSAFE(status_flags, fd_motor_failure, fromActuatorFailureActParam(_param_com_actuator_failure_act.get()));
+	ActionOptions actuator_failure_action = fromActuatorFailureActParam(_param_com_actuator_failure_act.get());
+
+	if (_param_ca_failure_mode.get() == 1 && _param_ca_rotor_count.get() == 4) {
+		actuator_failure_action.allowUserTakeover(UserTakeoverAllowed::AlwaysModeSwitchOnly).cannotBeDeferred();
+	}
+
+	CHECK_FAILSAFE(status_flags, fd_motor_failure, actuator_failure_action);
 	CHECK_FAILSAFE(status_flags, gnss_lost, fromGnssLossActParam(_param_com_gnssloss_act.get()));
 
 

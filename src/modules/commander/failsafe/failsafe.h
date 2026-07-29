@@ -223,6 +223,8 @@ private:
 					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 					(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
 					(ParamInt<px4::params::COM_ACT_FAIL_ACT>) _param_com_actuator_failure_act,
+					(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
+					(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_ca_rotor_count,
 					(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,
 					(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 					(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,

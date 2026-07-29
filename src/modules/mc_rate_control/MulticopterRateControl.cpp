@@ -45,6 +45,14 @@ using math::radians;
 
 ModuleBase::Descriptor MulticopterRateControl::desc{task_spawn, custom_command, print_usage};
 
+static constexpr int kRemoveFirstFailingMotorMode = 1;
+static constexpr float kMotorFailureYawTorqueLimit = 0.15f;
+
+static bool isSingleMotorFailureMask(uint16_t motor_failure_mask)
+{
+	return motor_failure_mask != 0 && (motor_failure_mask & (motor_failure_mask - 1u)) == 0;
+}
+
 MulticopterRateControl::MulticopterRateControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
@@ -213,6 +221,31 @@ MulticopterRateControl::Run()
 
 				// TODO: send the unallocated value directly for better anti-windup
 				_rate_control.setSaturationStatus(saturation_positive, saturation_negative);
+				_active_motor_failure_mask = control_allocator_status.handled_motor_failure_mask |
+							     control_allocator_status.motor_stop_mask;
+			}
+
+			const bool motor_failure_degraded_mode = _param_ca_failure_mode.get() == kRemoveFirstFailingMotorMode
+					&& _param_ca_rotor_count.get() == 4
+					&& _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+					&& isSingleMotorFailureMask(_active_motor_failure_mask);
+
+			if (motor_failure_degraded_mode != _motor_failure_degraded_mode) {
+				_motor_failure_degraded_mode = motor_failure_degraded_mode;
+				_output_lpf_yaw.reset(0.f);
+
+				if (_motor_failure_degraded_mode) {
+					PX4_WARN("Motor failure degraded control active");
+
+				} else {
+					PX4_INFO("Motor failure degraded control inactive");
+				}
+			}
+
+			if (_motor_failure_degraded_mode) {
+				const float yaw_rate_limit = math::radians(_param_mc_yawrate_max.get());
+				_rates_setpoint(2) = math::constrain(rates(2), -yaw_rate_limit, yaw_rate_limit);
+				_rate_control.resetIntegral(2);
 			}
 
 			// run rate controller
@@ -221,6 +254,11 @@ MulticopterRateControl::Run()
 
 			// apply low-pass filtering on yaw axis to reduce high frequency torque caused by rotor acceleration
 			torque_setpoint(2) = _output_lpf_yaw.update(torque_setpoint(2), dt);
+
+			if (_motor_failure_degraded_mode) {
+				torque_setpoint(2) = math::constrain(torque_setpoint(2), -kMotorFailureYawTorqueLimit,
+								     kMotorFailureYawTorqueLimit);
+			}
 
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};

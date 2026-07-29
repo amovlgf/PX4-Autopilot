@@ -42,6 +42,12 @@ using namespace matrix;
 
 // First meter after lift-off prioritises altitude over horizontal tracking.
 static constexpr float kTakeoffClimbPriorityHeight = 1.0f; // [m]
+static constexpr int kRemoveFirstFailingMotorMode = 1;
+
+static bool isSingleMotorFailureMask(uint16_t motor_failure_mask)
+{
+	return motor_failure_mask != 0 && (motor_failure_mask & (motor_failure_mask - 1u)) == 0;
+}
 
 bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 {
@@ -183,6 +189,8 @@ bool FlightTaskAuto::update()
 		waypoints[2] = _position_setpoint;
 	}
 
+	_applyMotorFailureDegradedYaw();
+
 	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == int32_t(yaw_mode::towards_waypoint_yaw_first)
 					       && !_yaw_sp_aligned;
 	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
@@ -255,6 +263,7 @@ bool FlightTaskAuto::update()
 		_manual_yaw_active = false;
 	}
 
+	_applyMotorFailureDegradedYaw();
 	_smoothYaw();
 	_constraints.want_takeoff = _checkTakeoff();
 	return ret;
@@ -385,6 +394,29 @@ void FlightTaskAuto::_smoothYaw()
 		// The yaw setpoint is aligned when its rate is not saturated
 		_yaw_sp_aligned = _yaw_sp_aligned && (fabsf(_yawspeed_setpoint) < yawrate_max);
 	}
+}
+
+void FlightTaskAuto::_applyMotorFailureDegradedYaw()
+{
+	if (_control_allocator_status_sub.update()) {
+		const control_allocator_status_s &control_allocator_status = _control_allocator_status_sub.get();
+		_active_motor_failure_mask = control_allocator_status.handled_motor_failure_mask |
+					     control_allocator_status.motor_stop_mask;
+	}
+
+	if (_type != WaypointType::land
+	    || _param_ca_failure_mode.get() != kRemoveFirstFailingMotorMode
+	    || _param_ca_rotor_count.get() != 4
+	    || !isSingleMotorFailureMask(_active_motor_failure_mask)) {
+		return;
+	}
+
+	_yaw_setpoint = NAN;
+	_yawspeed_setpoint = 0.f;
+	_yaw_sp_aligned = true;
+	_manual_yaw_active = false;
+	_triplet_yaw = NAN;
+	_yaw_lock = false;
 }
 
 bool FlightTaskAuto::_evaluatePositionSetpointTriplet()

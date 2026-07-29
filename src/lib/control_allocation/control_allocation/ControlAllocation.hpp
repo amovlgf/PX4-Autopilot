@@ -144,7 +144,11 @@ public:
 	 * @return Control vector
 	 */
 	matrix::Vector<float, NUM_AXES> getAllocatedControl() const
-	{ return (_effectiveness * (_actuator_sp - _actuator_trim)).emult(_control_allocation_scale); }
+	{
+		ActuatorVector finite_actuator_sp{_actuator_sp};
+		finite_actuator_sp.nanToZero();
+		return (_effectiveness * (finite_actuator_sp - _actuator_trim)).emult(_control_allocation_scale);
+	}
 
 	/**
 	 * Get the control effectiveness matrix

@@ -776,17 +776,21 @@ ControlAllocator::check_for_motor_failures()
 			PX4_WARN("Stopping motors (%d)", _motor_stop_mask);
 		}
 
-		if (failure_detector_status.fd_motor) {
-			if (_handled_motor_failure_bitmask != failure_detector_status.motor_failure_mask) {
+		const uint16_t motor_failure_mask = failure_detector_status.motor_failure_mask != 0
+						    ? failure_detector_status.motor_failure_mask
+						    : failure_detector_status.motor_stop_mask;
+
+		if (motor_failure_mask != 0) {
+			if (_handled_motor_failure_bitmask != motor_failure_mask) {
 				// motor failure bitmask changed
 				switch ((FailureMode)_param_ca_failure_mode.get()) {
 				case FailureMode::REMOVE_FIRST_FAILING_MOTOR: {
 						// Count number of failed motors
-						const int num_motors_failed = math::countSetBits(failure_detector_status.motor_failure_mask);
+						const int num_motors_failed = math::countSetBits(motor_failure_mask);
 
 						// Only handle if it is the first failure
 						if (_handled_motor_failure_bitmask == 0 && num_motors_failed == 1) {
-							_handled_motor_failure_bitmask = failure_detector_status.motor_failure_mask;
+							_handled_motor_failure_bitmask = motor_failure_mask;
 							PX4_WARN("Removing motor from allocation (0x%x)", _handled_motor_failure_bitmask);
 
 							for (int i = 0; i < _num_control_allocation; ++i) {

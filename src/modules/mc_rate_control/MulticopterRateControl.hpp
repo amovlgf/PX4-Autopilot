@@ -117,6 +117,8 @@ private:
 
 	bool _landed{true};
 	bool _maybe_landed{true};
+	bool _motor_failure_degraded_mode{false};
+	uint16_t _active_motor_failure_mask{0};
 
 	hrt_abstime _last_run{0};
 
@@ -156,6 +158,7 @@ private:
 		(ParamFloat<px4::params::MC_YAWRATE_FF>) _param_mc_yawrate_ff,
 		(ParamFloat<px4::params::MC_YAWRATE_K>) _param_mc_yawrate_k,
 		(ParamFloat<px4::params::MC_YAW_TQ_CUTOFF>) _param_mc_yaw_tq_cutoff,
+		(ParamFloat<px4::params::MC_YAWRATE_MAX>) _param_mc_yawrate_max,
 
 		(ParamFloat<px4::params::MC_ACRO_R_MAX>) _param_mc_acro_r_max,
 		(ParamFloat<px4::params::MC_ACRO_P_MAX>) _param_mc_acro_p_max,
@@ -165,6 +168,8 @@ private:
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _param_mc_acro_supexpo,		/**< superexpo stick curve shape (roll & pitch) */
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _param_mc_acro_supexpoy,		/**< superexpo stick curve shape (yaw) */
 
-		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en
+		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
+		(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
+		(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_ca_rotor_count
 	)
 };
