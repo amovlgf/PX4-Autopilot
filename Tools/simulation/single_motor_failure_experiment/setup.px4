@@ -1,0 +1,13 @@
+# Paste these commands into the PX4 SITL shell before a representative run.
+# COM_FAIL_ACT_T and MIS_TAKEOFF_ALT are matrix dimensions and must be varied.
+
+param set SYS_FAILURE_EN 1
+param set FD_ACT_EN 0
+param set MC_AIRMODE 1
+param set CA_FAILURE_MODE 1
+param set COM_ACT_FAIL_ACT 2
+param set COM_FAIL_ACT_T 5
+param set MIS_TAKEOFF_ALT 2.5
+
+# After a stable hover:
+# failure motor off -i 1
