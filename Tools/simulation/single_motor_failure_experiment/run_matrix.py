@@ -156,9 +156,13 @@ def request_stream(mav, message_id, rate_hz):
     )
 
 
-def send_command(mav, command, params=None, timeout=10):
+def send_command(mav, command, params=None, timeout=10, accepted_results=None):
     params = list(params or [])
     params.extend([float("nan")] * (7 - len(params)))
+    accepted_results = accepted_results or (
+        MAV_RESULT_ACCEPTED,
+        MAV_RESULT_IN_PROGRESS,
+    )
 
     while mav.recv_match(type="COMMAND_ACK", blocking=False) is not None:
         pass
@@ -181,8 +185,8 @@ def send_command(mav, command, params=None, timeout=10):
 
         observed.append(int(message.result))
 
-        if message.result in (MAV_RESULT_ACCEPTED, MAV_RESULT_IN_PROGRESS):
-            return
+        if message.result in accepted_results:
+            return int(message.result)
 
         raise MatrixError(
             "MAVLink command {} rejected with result {}".format(
@@ -203,6 +207,31 @@ def inject_motor_failure(mav, motor, failure_type):
         MAV_CMD_INJECT_FAILURE,
         [FAILURE_UNIT_SYSTEM_MOTOR, failure_type, motor, 0, 0, 0, 0],
     )
+
+
+def arm_vehicle(mav, timeout, force):
+    deadline = time.monotonic() + timeout
+    arm_magic = 21196 if force else 0
+
+    while time.monotonic() < deadline:
+        result = send_command(
+            mav,
+            mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+            [1, arm_magic, 0, 0, 0, 0, 0],
+            timeout=min(5, max(1, deadline - time.monotonic())),
+            accepted_results=(
+                MAV_RESULT_ACCEPTED,
+                MAV_RESULT_IN_PROGRESS,
+                1,  # MAV_RESULT_TEMPORARILY_REJECTED
+            ),
+        )
+
+        if result != 1 and wait_for_armed_state(mav, True, 3):
+            return True
+
+        time.sleep(1)
+
+    return False
 
 
 def heartbeat_armed(message):
@@ -363,16 +392,11 @@ def run_case(mav, case, args):
     set_parameter(mav, "MIS_TAKEOFF_ALT", case["height_m"], integer=False)
     set_parameter(mav, "COM_FAIL_ACT_T", case["fail_delay_s"], integer=False)
     inject_motor_failure(mav, motor, FAILURE_TYPE_OK)
-    send_command(
-        mav,
-        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-        [1, 0, 0, 0, 0, 0, 0],
-    )
+    send_command(mav, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF)
 
-    if not wait_for_armed_state(mav, True, args.arm_timeout):
+    if not arm_vehicle(mav, args.arm_timeout, args.force_arm):
         raise MatrixError("vehicle did not arm")
 
-    send_command(mav, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF)
     hover = wait_for_stable_hover(
         mav,
         case["height_m"],
@@ -451,6 +475,11 @@ def parse_args():
     parser.add_argument("--disarm-timeout", type=float, default=15)
     parser.add_argument("--stable-time", type=float, default=2)
     parser.add_argument("--reset-wait", type=float, default=2)
+    parser.add_argument(
+        "--force-arm",
+        action="store_true",
+        help="use PX4's SITL force-arm magic after switching to Takeoff",
+    )
     parser.add_argument("--fail-fast", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
