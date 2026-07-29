@@ -1,0 +1,462 @@
+{
+  "generated_at": "2026-07-29T04:35:22.859750+00:00",
+  "results": [
+    {
+      "case_index": 1,
+      "fail_delay_s": 0.0,
+      "finished_at": "2026-07-29T04:01:30.474371+00:00",
+      "forced_disarm": false,
+      "height_m": 2.5,
+      "injected_at": "2026-07-29T04:01:14.136737+00:00",
+      "injection_hover": {
+        "height_m": 2.196197509765625,
+        "speed_m_s": 0.12274665427612362
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_00_44.ulg",
+      "motor": 1,
+      "natural_disarm_observed_s": 14.31949627100039,
+      "started_at": "2026-07-29T04:01:02.383323+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 11.163799250000011
+    },
+    {
+      "case_index": 2,
+      "fail_delay_s": 0.0,
+      "finished_at": "2026-07-29T04:02:30.714901+00:00",
+      "forced_disarm": false,
+      "height_m": 2.5,
+      "injected_at": "2026-07-29T04:02:14.700897+00:00",
+      "injection_hover": {
+        "height_m": 2.220947265625,
+        "speed_m_s": 0.11315192299102185
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_01_45.ulg",
+      "motor": 2,
+      "natural_disarm_observed_s": 14.0006880130004,
+      "started_at": "2026-07-29T04:02:03.284587+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 9.57404726599998
+    },
+    {
+      "case_index": 3,
+      "fail_delay_s": 0.0,
+      "finished_at": "2026-07-29T04:03:34.898515+00:00",
+      "forced_disarm": false,
+      "height_m": 2.5,
+      "injected_at": "2026-07-29T04:03:17.328131+00:00",
+      "injection_hover": {
+        "height_m": 2.19085693359375,
+        "speed_m_s": 0.12180322708412088
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_02_45.ulg",
+      "motor": 3,
+      "natural_disarm_observed_s": 15.559953972000585,
+      "started_at": "2026-07-29T04:03:04.979154+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 12.299078776000897
+    },
+    {
+      "case_index": 4,
+      "fail_delay_s": 0.0,
+      "finished_at": "2026-07-29T04:04:39.400663+00:00",
+      "forced_disarm": false,
+      "height_m": 2.5,
+      "injected_at": "2026-07-29T04:04:20.798224+00:00",
+      "injection_hover": {
+        "height_m": 2.214874267578125,
+        "speed_m_s": 0.1269701165448388
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_03_49.ulg",
+      "motor": 4,
+      "natural_disarm_observed_s": 16.574731505999807,
+      "started_at": "2026-07-29T04:04:09.075500+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 12.53555185300138
+    },
+    {
+      "case_index": 5,
+      "fail_delay_s": 0.0,
+      "finished_at": "2026-07-29T04:06:05.392066+00:00",
+      "forced_disarm": false,
+      "height_m": 10.0,
+      "injected_at": "2026-07-29T04:05:33.088595+00:00",
+      "injection_hover": {
+        "height_m": 9.77734375,
+        "speed_m_s": 0.10188072315691013
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_04_54.ulg",
+      "motor": 1,
+      "natural_disarm_observed_s": 30.291088779000347,
+      "started_at": "2026-07-29T04:05:14.348871+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 26.236034248999204
+    },
+    {
+      "case_index": 6,
+      "fail_delay_s": 0.0,
+      "finished_at": "2026-07-29T04:07:20.735228+00:00",
+      "forced_disarm": false,
+      "height_m": 10.0,
+      "injected_at": "2026-07-29T04:06:58.306299+00:00",
+      "injection_hover": {
+        "height_m": 9.761138916015625,
+        "speed_m_s": 0.10595778864423805
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_06_20.ulg",
+      "motor": 2,
+      "natural_disarm_observed_s": 20.415671275999557,
+      "started_at": "2026-07-29T04:06:38.909375+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 16.184353571999964
+    },
+    {
+      "case_index": 7,
+      "fail_delay_s": 0.0,
+      "finished_at": "2026-07-29T04:08:46.612174+00:00",
+      "forced_disarm": false,
+      "height_m": 10.0,
+      "injected_at": "2026-07-29T04:08:16.172075+00:00",
+      "injection_hover": {
+        "height_m": 9.774688720703125,
+        "speed_m_s": 0.1038011284799982
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_07_35.ulg",
+      "motor": 3,
+      "natural_disarm_observed_s": 28.421740551000767,
+      "started_at": "2026-07-29T04:07:56.195152+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 25.534094693000952
+    },
+    {
+      "case_index": 8,
+      "fail_delay_s": 0.0,
+      "finished_at": "2026-07-29T04:10:07.779410+00:00",
+      "forced_disarm": false,
+      "height_m": 10.0,
+      "injected_at": "2026-07-29T04:09:39.828487+00:00",
+      "injection_hover": {
+        "height_m": 9.76025390625,
+        "speed_m_s": 0.09798568691260454
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_09_01.ulg",
+      "motor": 4,
+      "natural_disarm_observed_s": 25.94020639700102,
+      "started_at": "2026-07-29T04:09:21.113380+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 22.396563483000136
+    },
+    {
+      "case_index": 9,
+      "fail_delay_s": 0.0,
+      "finished_at": "2026-07-29T04:11:33.641901+00:00",
+      "forced_disarm": false,
+      "height_m": 20.0,
+      "injected_at": "2026-07-29T04:11:11.366808+00:00",
+      "injection_hover": {
+        "height_m": 19.711029052734375,
+        "speed_m_s": 0.17161783839419234
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_10_23.ulg",
+      "motor": 1,
+      "natural_disarm_observed_s": 20.248744231999808,
+      "started_at": "2026-07-29T04:10:42.920594+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 17.504978754999684
+    },
+    {
+      "case_index": 10,
+      "fail_delay_s": 0.0,
+      "finished_at": "2026-07-29T04:13:20.752243+00:00",
+      "forced_disarm": false,
+      "height_m": 20.0,
+      "injected_at": "2026-07-29T04:12:36.018432+00:00",
+      "injection_hover": {
+        "height_m": 19.69903564453125,
+        "speed_m_s": 0.16099147626781896
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_11_48.ulg",
+      "motor": 2,
+      "natural_disarm_observed_s": 42.72207213500042,
+      "started_at": "2026-07-29T04:12:08.242628+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 38.636225991000174
+    },
+    {
+      "case_index": 11,
+      "fail_delay_s": 0.0,
+      "finished_at": "2026-07-29T04:14:45.610282+00:00",
+      "forced_disarm": false,
+      "height_m": 20.0,
+      "injected_at": "2026-07-29T04:14:22.765451+00:00",
+      "injection_hover": {
+        "height_m": 19.707244873046875,
+        "speed_m_s": 0.15409262011105324
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_13_36.ulg",
+      "motor": 3,
+      "natural_disarm_observed_s": 20.824246288999348,
+      "started_at": "2026-07-29T04:13:55.901311+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 16.6802991250006
+    },
+    {
+      "case_index": 12,
+      "fail_delay_s": 0.0,
+      "finished_at": "2026-07-29T04:17:22.823129+00:00",
+      "forced_disarm": true,
+      "height_m": 20.0,
+      "injected_at": "2026-07-29T04:15:49.222420+00:00",
+      "injection_hover": {
+        "height_m": 19.677703857421875,
+        "speed_m_s": 0.15473480411824214
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_15_01.ulg",
+      "motor": 4,
+      "natural_disarm_observed_s": null,
+      "started_at": "2026-07-29T04:15:20.806611+00:00",
+      "status": "complete",
+      "touchdown_observed_s": null
+    },
+    {
+      "case_index": 13,
+      "fail_delay_s": 5.0,
+      "finished_at": "2026-07-29T04:18:32.188085+00:00",
+      "forced_disarm": false,
+      "height_m": 2.5,
+      "injected_at": "2026-07-29T04:18:13.717115+00:00",
+      "injection_hover": {
+        "height_m": 2.194915771484375,
+        "speed_m_s": 0.1314317193101052
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_17_40.ulg",
+      "motor": 1,
+      "natural_disarm_observed_s": 16.45820787699995,
+      "started_at": "2026-07-29T04:18:01.542635+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 13.071594884999286
+    },
+    {
+      "case_index": 14,
+      "fail_delay_s": 5.0,
+      "finished_at": "2026-07-29T04:19:38.161377+00:00",
+      "forced_disarm": false,
+      "height_m": 2.5,
+      "injected_at": "2026-07-29T04:19:20.798897+00:00",
+      "injection_hover": {
+        "height_m": 2.17431640625,
+        "speed_m_s": 0.14548290667526986
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_18_49.ulg",
+      "motor": 2,
+      "natural_disarm_observed_s": 15.336400830999992,
+      "started_at": "2026-07-29T04:19:07.939013+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 11.752684638999199
+    },
+    {
+      "case_index": 15,
+      "fail_delay_s": 5.0,
+      "finished_at": "2026-07-29T04:20:46.140221+00:00",
+      "forced_disarm": false,
+      "height_m": 2.5,
+      "injected_at": "2026-07-29T04:20:28.436806+00:00",
+      "injection_hover": {
+        "height_m": 2.1829833984375,
+        "speed_m_s": 0.12933634269946123
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_19_54.ulg",
+      "motor": 3,
+      "natural_disarm_observed_s": 15.689726933000202,
+      "started_at": "2026-07-29T04:20:15.349408+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 11.915846320000128
+    },
+    {
+      "case_index": 16,
+      "fail_delay_s": 5.0,
+      "finished_at": "2026-07-29T04:21:52.018378+00:00",
+      "forced_disarm": false,
+      "height_m": 2.5,
+      "injected_at": "2026-07-29T04:21:34.346314+00:00",
+      "injection_hover": {
+        "height_m": 2.19537353515625,
+        "speed_m_s": 0.12184828336176148
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_21_02.ulg",
+      "motor": 4,
+      "natural_disarm_observed_s": 15.653289046998907,
+      "started_at": "2026-07-29T04:21:21.721240+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 11.298809597999934
+    },
+    {
+      "case_index": 17,
+      "fail_delay_s": 5.0,
+      "finished_at": "2026-07-29T04:23:24.677496+00:00",
+      "forced_disarm": false,
+      "height_m": 10.0,
+      "injected_at": "2026-07-29T04:22:51.372155+00:00",
+      "injection_hover": {
+        "height_m": 9.75604248046875,
+        "speed_m_s": 0.1181897323522552
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_22_09.ulg",
+      "motor": 1,
+      "natural_disarm_observed_s": 31.293132583999977,
+      "started_at": "2026-07-29T04:22:30.554787+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 27.35685569599991
+    },
+    {
+      "case_index": 18,
+      "fail_delay_s": 5.0,
+      "finished_at": "2026-07-29T04:24:42.787318+00:00",
+      "forced_disarm": false,
+      "height_m": 10.0,
+      "injected_at": "2026-07-29T04:24:21.722061+00:00",
+      "injection_hover": {
+        "height_m": 9.74920654296875,
+        "speed_m_s": 0.10608446469269314
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_23_41.ulg",
+      "motor": 2,
+      "natural_disarm_observed_s": 19.04599577800036,
+      "started_at": "2026-07-29T04:24:02.180380+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 15.753430947999732
+    },
+    {
+      "case_index": 19,
+      "fail_delay_s": 5.0,
+      "finished_at": "2026-07-29T04:26:05.584460+00:00",
+      "forced_disarm": false,
+      "height_m": 10.0,
+      "injected_at": "2026-07-29T04:25:36.742152+00:00",
+      "injection_hover": {
+        "height_m": 9.725799560546875,
+        "speed_m_s": 0.10904622959393573
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_24_58.ulg",
+      "motor": 3,
+      "natural_disarm_observed_s": 26.830126339000344,
+      "started_at": "2026-07-29T04:25:17.702680+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 23.412443045001055
+    },
+    {
+      "case_index": 20,
+      "fail_delay_s": 5.0,
+      "finished_at": "2026-07-29T04:27:32.261907+00:00",
+      "forced_disarm": false,
+      "height_m": 10.0,
+      "injected_at": "2026-07-29T04:26:58.872960+00:00",
+      "injection_hover": {
+        "height_m": 9.7369384765625,
+        "speed_m_s": 0.10756788721801484
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_26_20.ulg",
+      "motor": 4,
+      "natural_disarm_observed_s": 31.37388747099976,
+      "started_at": "2026-07-29T04:26:40.023669+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 28.178161775000262
+    },
+    {
+      "case_index": 21,
+      "fail_delay_s": 5.0,
+      "finished_at": "2026-07-29T04:29:22.311353+00:00",
+      "forced_disarm": false,
+      "height_m": 20.0,
+      "injected_at": "2026-07-29T04:28:36.842185+00:00",
+      "injection_hover": {
+        "height_m": 19.684967041015625,
+        "speed_m_s": 0.16065366276541804
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_27_47.ulg",
+      "motor": 1,
+      "natural_disarm_observed_s": 43.450516560000324,
+      "started_at": "2026-07-29T04:28:08.265626+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 40.08783277400107
+    },
+    {
+      "case_index": 22,
+      "fail_delay_s": 5.0,
+      "finished_at": "2026-07-29T04:30:47.834533+00:00",
+      "forced_disarm": false,
+      "height_m": 20.0,
+      "injected_at": "2026-07-29T04:30:24.772469+00:00",
+      "injection_hover": {
+        "height_m": 19.68939208984375,
+        "speed_m_s": 0.17253352593186919
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_29_37.ulg",
+      "motor": 2,
+      "natural_disarm_observed_s": 21.046398362999753,
+      "started_at": "2026-07-29T04:29:57.075346+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 16.696614611999394
+    },
+    {
+      "case_index": 23,
+      "fail_delay_s": 5.0,
+      "finished_at": "2026-07-29T04:32:37.708633+00:00",
+      "forced_disarm": false,
+      "height_m": 20.0,
+      "injected_at": "2026-07-29T04:31:52.653822+00:00",
+      "injection_hover": {
+        "height_m": 19.674346923828125,
+        "speed_m_s": 0.154262573928693
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_31_03.ulg",
+      "motor": 3,
+      "natural_disarm_observed_s": 43.03628711499914,
+      "started_at": "2026-07-29T04:31:23.709098+00:00",
+      "status": "complete",
+      "touchdown_observed_s": 40.06016209199879
+    },
+    {
+      "case_index": 24,
+      "fail_delay_s": 5.0,
+      "finished_at": "2026-07-29T04:35:11.900970+00:00",
+      "forced_disarm": true,
+      "height_m": 20.0,
+      "injected_at": "2026-07-29T04:33:39.429169+00:00",
+      "injection_hover": {
+        "height_m": 19.69036865234375,
+        "speed_m_s": 0.13778284244392902
+      },
+      "isolated_session": true,
+      "log_path": "build/px4_sitl_default/rootfs/log/2026-07-29/04_32_52.ulg",
+      "motor": 4,
+      "natural_disarm_observed_s": null,
+      "started_at": "2026-07-29T04:33:11.154819+00:00",
+      "status": "complete",
+      "touchdown_observed_s": null
+    }
+  ],
+  "session_strategy": "fresh-visible-jmavsim-per-case"
+}

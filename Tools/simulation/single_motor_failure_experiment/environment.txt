@@ -1,0 +1,50 @@
+Experiment date: 2026-07-29
+Experiment timezone: Asia/Shanghai
+
+PX4 repository: amovlgf/PX4-Autopilot
+PX4 branch: dev/power-redundancy-protection
+PX4 tested firmware SHA: f5bba53c2a53c0f7d7820341c19e67e6c6f92819
+PX4 implementation commit: 2b24c9f163
+PX4 test commit: 4911da2819
+PX4 matrix workflow commit: 64d471f428
+PX4 MAVLink workflow fix: 10b4c7be7e
+PX4 same-session runner fix: 341fe61da9
+PX4 isolated-session runner commit: f5bba53c2a
+PX4 source base SHA: 50161b1f09c31beade9a0bb5b4057276e9eac4ee
+PX4 base subject: fix(mavlink): Timestamp missing from HIL_STATE_QUATERION stream (#27862)
+PX4 base date: 2026-07-11
+PX4 SITL target: px4_sitl_default
+PX4 matrix strategy: fresh visible jMAVSim and PX4 session per case
+PX4 matrix dimensions: 4 motors x 3 heights x 2 COM_FAIL_ACT_T values
+PX4 formal ULogs: 24
+
+Simulator: jMAVSim
+jMAVSim SHA: 665b26d62d36a33b6bf01c5931c589beb812c6a2
+
+Ground station: QGroundControl (observation only)
+QGroundControl SHA: e561057133ffeb9d735710758c11fb6320ffbe09
+QGroundControl branch: ai/mavlink-console-assistant-v5.0.8
+
+Operating system: Ubuntu 20.04 LTS
+Kernel: Linux 5.15.0-139-generic x86_64
+GCC: 9.4.0
+CMake: 3.16.3
+GNU Make: 4.2.1
+OpenJDK: 13.0.7
+
+Analysis:
+Python: 3.8.10
+pyulog: 1.2.2
+numpy: 1.24.4
+matplotlib: 3.7.5
+pymavlink: 2.4.49
+
+Important provenance note:
+All 24 formal ULogs identify branch dev/power-redundancy-protection and firmware
+SHA f5bba53c2a53c0f7d7820341c19e67e6c6f92819. Flight-control, test, and matrix
+tool changes were committed before the formal run. Later documentation or
+derived-evidence commits do not change the firmware provenance of this matrix.
+
+QGroundControl remained connected for observation. Every case used a newly
+launched visible PX4 console and jMAVSim GUI. The per-case session was stopped
+after ULog finalization; QGroundControl remained running.
