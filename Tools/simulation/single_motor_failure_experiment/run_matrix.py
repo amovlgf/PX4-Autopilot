@@ -3,8 +3,8 @@
 Run the quadrotor single-motor-failure SITL matrix through MAVLink.
 
 The script expects an already-running visible PX4 jMAVSim session. QGC may
-remain connected for observation, but its MAVLink console must be closed while
-this script owns the PX4 shell.
+remain connected for observation. Vehicle commands and parameter changes use
+the regular MAVLink command and parameter protocols.
 """
 
 import argparse
@@ -20,7 +20,13 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 BENCH_TOOLS = REPOSITORY_ROOT / "Tools" / "bench_test"
 sys.path.insert(0, str(BENCH_TOOLS))
 
-from px4bench import MavlinkShell, connect, send_heartbeat  # noqa: E402
+from px4bench import connect, send_heartbeat  # noqa: E402
+from px4bench.params import (  # noqa: E402
+    drain_param_values,
+    int32_to_param_float,
+    param_float_to_int32,
+    param_id_str,
+)
 from pymavlink import mavutil  # noqa: E402
 
 
@@ -40,14 +46,40 @@ STATIC_PARAMETERS = {
 }
 
 MAV_CMD_SET_MESSAGE_INTERVAL = 511
+MAV_CMD_INJECT_FAILURE = 420
+FAILURE_UNIT_SYSTEM_MOTOR = 101
+FAILURE_TYPE_OK = 0
+FAILURE_TYPE_OFF = 1
 MAVLINK_MSG_ID_LOCAL_POSITION_NED = 32
 MAVLINK_MSG_ID_EXTENDED_SYS_STATE = 245
 MAV_MODE_FLAG_SAFETY_ARMED = 128
 MAV_LANDED_STATE_ON_GROUND = 1
+MAV_RESULT_ACCEPTED = 0
+MAV_RESULT_IN_PROGRESS = 5
 
 
 class MatrixError(RuntimeError):
     pass
+
+
+def connect_vehicle(connection, timeout):
+    mav = connect(connection, timeout=timeout)
+    deadline = time.monotonic() + timeout
+
+    while time.monotonic() < deadline:
+        heartbeat = mav.recv_match(type="HEARTBEAT", blocking=True, timeout=1)
+
+        if (
+            heartbeat is not None
+            and heartbeat.autopilot
+            != mavutil.mavlink.MAV_AUTOPILOT_INVALID
+        ):
+            mav.target_system = heartbeat.get_srcSystem()
+            mav.target_component = heartbeat.get_srcComponent()
+            return mav
+
+    mav.close()
+    raise MatrixError("no PX4 autopilot heartbeat received on {}".format(connection))
 
 
 def parse_csv_numbers(raw, cast):
@@ -65,43 +97,47 @@ def parse_csv_numbers(raw, cast):
     return values
 
 
-def run_shell(shell, command, timeout=10):
-    output, timed_out = shell.run(command, timeout=timeout)
-
-    if timed_out:
-        raise MatrixError("shell command timed out: {}".format(command))
-
-    lowered = output.lower()
-
-    if "command not found" in lowered or "error [" in lowered:
-        raise MatrixError("shell command failed: {}\n{}".format(command, output))
-
-    return output
-
-
-def set_parameter(shell, name, value):
-    run_shell(shell, "param set {} {}".format(name, value))
-    output = run_shell(shell, "param show {}".format(name))
+def set_parameter(mav, name, value, integer):
     expected = float(value)
-    observed = None
+    parameter_type = (
+        mavutil.mavlink.MAV_PARAM_TYPE_INT32
+        if integer
+        else mavutil.mavlink.MAV_PARAM_TYPE_REAL32
+    )
+    wire_value = int32_to_param_float(int(value)) if integer else expected
+    drain_param_values(mav)
+    mav.mav.param_set_send(
+        mav.target_system,
+        mav.target_component,
+        name.encode("ascii"),
+        wire_value,
+        parameter_type,
+    )
+    deadline = time.monotonic() + 5
+    observed = []
 
-    for line in output.splitlines():
-        if name not in line or ":" not in line:
+    while time.monotonic() < deadline:
+        message = mav.recv_match(type="PARAM_VALUE", blocking=True, timeout=1)
+
+        if message is None or param_id_str(message.param_id) != name:
             continue
 
-        try:
-            observed = float(line.rsplit(":", 1)[1].strip().split()[0])
-        except (IndexError, ValueError):
-            continue
-
-    tolerance = max(1e-4, abs(expected) * 1e-4)
-
-    if observed is None or not math.isclose(observed, expected, abs_tol=tolerance):
-        raise MatrixError(
-            "parameter verification failed for {}: expected {}, observed {}".format(
-                name, expected, observed
-            )
+        current = (
+            float(param_float_to_int32(message.param_value))
+            if integer
+            else float(message.param_value)
         )
+        observed.append(current)
+        tolerance = max(1e-4, abs(expected) * 1e-4)
+
+        if math.isclose(current, expected, abs_tol=tolerance):
+            return
+
+    raise MatrixError(
+        "parameter verification failed for {}: expected {}, observed {}".format(
+            name, expected, observed
+        )
+    )
 
 
 def request_stream(mav, message_id, rate_hz):
@@ -117,6 +153,55 @@ def request_stream(mav, message_id, rate_hz):
         0,
         0,
         0,
+    )
+
+
+def send_command(mav, command, params=None, timeout=10):
+    params = list(params or [])
+    params.extend([float("nan")] * (7 - len(params)))
+
+    while mav.recv_match(type="COMMAND_ACK", blocking=False) is not None:
+        pass
+
+    mav.mav.command_long_send(
+        mav.target_system,
+        mav.target_component,
+        command,
+        0,
+        *params[:7],
+    )
+    deadline = time.monotonic() + timeout
+    observed = []
+
+    while time.monotonic() < deadline:
+        message = mav.recv_match(type="COMMAND_ACK", blocking=True, timeout=1)
+
+        if message is None or message.command != command:
+            continue
+
+        observed.append(int(message.result))
+
+        if message.result in (MAV_RESULT_ACCEPTED, MAV_RESULT_IN_PROGRESS):
+            return
+
+        raise MatrixError(
+            "MAVLink command {} rejected with result {}".format(
+                command, message.result
+            )
+        )
+
+    raise MatrixError(
+        "MAVLink command {} was not acknowledged; observed {}".format(
+            command, observed
+        )
+    )
+
+
+def inject_motor_failure(mav, motor, failure_type):
+    send_command(
+        mav,
+        MAV_CMD_INJECT_FAILURE,
+        [FAILURE_UNIT_SYSTEM_MOTOR, failure_type, motor, 0, 0, 0, 0],
     )
 
 
@@ -212,11 +297,24 @@ def all_logs(log_root):
     return set(log_root.rglob("*.ulg")) if log_root.exists() else set()
 
 
-def wait_for_new_log(log_root, previous_logs, timeout=8):
+def log_snapshot(log_root):
+    return {
+        path: (path.stat().st_size, path.stat().st_mtime_ns)
+        for path in all_logs(log_root)
+    }
+
+
+def wait_for_case_log(log_root, previous_snapshot, timeout=8):
     deadline = time.monotonic() + timeout
 
     while time.monotonic() < deadline:
-        candidates = all_logs(log_root) - previous_logs
+        current_snapshot = log_snapshot(log_root)
+        candidates = [
+            path
+            for path, metadata in current_snapshot.items()
+            if path not in previous_snapshot
+            or metadata != previous_snapshot[path]
+        ]
 
         if candidates:
             return max(candidates, key=lambda path: path.stat().st_mtime_ns)
@@ -256,21 +354,25 @@ def write_progress(results, summary_path, log_list_path):
     )
 
 
-def run_case(mav, shell, case, args):
+def run_case(mav, case, args):
     result = dict(case)
     result["started_at"] = datetime.now(timezone.utc).isoformat()
-    before_logs = all_logs(args.log_root)
+    before_logs = log_snapshot(args.log_root)
     motor = case["motor"]
 
-    set_parameter(shell, "MIS_TAKEOFF_ALT", case["height_m"])
-    set_parameter(shell, "COM_FAIL_ACT_T", case["fail_delay_s"])
-    run_shell(shell, "failure motor ok -i {}".format(motor))
-    run_shell(shell, "commander arm")
+    set_parameter(mav, "MIS_TAKEOFF_ALT", case["height_m"], integer=False)
+    set_parameter(mav, "COM_FAIL_ACT_T", case["fail_delay_s"], integer=False)
+    inject_motor_failure(mav, motor, FAILURE_TYPE_OK)
+    send_command(
+        mav,
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+        [1, 0, 0, 0, 0, 0, 0],
+    )
 
     if not wait_for_armed_state(mav, True, args.arm_timeout):
         raise MatrixError("vehicle did not arm")
 
-    run_shell(shell, "commander takeoff")
+    send_command(mav, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF)
     hover = wait_for_stable_hover(
         mav,
         case["height_m"],
@@ -279,7 +381,7 @@ def run_case(mav, shell, case, args):
     )
     result["injection_hover"] = hover
     result["injected_at"] = datetime.now(timezone.utc).isoformat()
-    run_shell(shell, "failure motor off -i {}".format(motor))
+    inject_motor_failure(mav, motor, FAILURE_TYPE_OFF)
     touchdown_s, disarm_s = wait_for_touchdown_and_disarm(
         mav, args.landing_timeout
     )
@@ -288,14 +390,18 @@ def run_case(mav, shell, case, args):
 
     if disarm_s is None:
         result["forced_disarm"] = True
-        run_shell(shell, "commander disarm -f")
+        send_command(
+            mav,
+            mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+            [0, 21196, 0, 0, 0, 0, 0],
+        )
         wait_for_armed_state(mav, False, args.disarm_timeout)
     else:
         result["forced_disarm"] = False
 
-    run_shell(shell, "failure motor ok -i {}".format(motor))
+    inject_motor_failure(mav, motor, FAILURE_TYPE_OK)
     time.sleep(args.reset_wait)
-    log_path = wait_for_new_log(args.log_root, before_logs)
+    log_path = wait_for_case_log(args.log_root, before_logs)
     result["log_path"] = relative_log_path(log_path) if log_path else None
     result["status"] = "complete" if log_path else "missing_log"
     result["finished_at"] = datetime.now(timezone.utc).isoformat()
@@ -362,22 +468,17 @@ def main():
     if args.dry_run:
         return 0
 
-    mav = connect(args.connection, timeout=30)
+    mav = connect_vehicle(args.connection, timeout=30)
     request_stream(mav, MAVLINK_MSG_ID_LOCAL_POSITION_NED, 20)
     request_stream(mav, MAVLINK_MSG_ID_EXTENDED_SYS_STATE, 5)
-    shell = MavlinkShell(mav)
-
-    if not shell.open(timeout=8):
-        mav.close()
-        raise SystemExit("failed to open the PX4 MAVLink shell")
 
     results = []
 
     try:
         for name, value in STATIC_PARAMETERS.items():
-            set_parameter(shell, name, value)
+            set_parameter(mav, name, value, integer=True)
 
-        set_parameter(shell, "CA_ROTOR_COUNT", 4)
+        set_parameter(mav, "CA_ROTOR_COUNT", 4, integer=True)
 
         for index, case in enumerate(cases, start=1):
             print(
@@ -392,7 +493,7 @@ def main():
             )
 
             try:
-                result = run_case(mav, shell, case, args)
+                result = run_case(mav, case, args)
             except Exception as error:
                 result = dict(case)
                 result.update(
@@ -404,11 +505,12 @@ def main():
                 )
 
                 try:
-                    run_shell(shell, "commander disarm -f")
-                    run_shell(
-                        shell,
-                        "failure motor ok -i {}".format(case["motor"]),
+                    send_command(
+                        mav,
+                        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                        [0, 21196, 0, 0, 0, 0, 0],
                     )
+                    inject_motor_failure(mav, case["motor"], FAILURE_TYPE_OK)
                 except Exception as cleanup_error:
                     result["cleanup_error"] = str(cleanup_error)
 
@@ -420,7 +522,6 @@ def main():
                 break
 
     finally:
-        shell.close()
         mav.close()
 
     complete = sum(result.get("status") == "complete" for result in results)
