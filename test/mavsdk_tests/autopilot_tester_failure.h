@@ -51,9 +51,12 @@ public:
 	void set_param_mc_airmode(int value);
 	void set_param_ca_failure_mode(int value);
 	void set_param_com_act_fail_act(int value);
+	void set_param_com_fail_act_t(float value);
 
 	void enable_actuator_output_status();
 	void ensure_motor_stopped(unsigned index, unsigned num_motors);
+	void wait_until_landing(std::chrono::seconds timeout);
+	void wait_until_on_ground(std::chrono::seconds timeout);
 
 	void inject_failure(mavsdk::Failure::FailureUnit failure_unit, mavsdk::Failure::FailureType failure_type, int instance,
 			    mavsdk::Failure::Result expected_result);

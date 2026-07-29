@@ -91,3 +91,29 @@ TEST(ControlAllocationMetricTest, AllZeroCase)
 	EXPECT_EQ(actuator_sp, actuator_sp_expected);
 	EXPECT_EQ(control_allocated, control_allocated_expected);
 }
+
+TEST(ControlAllocationTest, StoppedActuatorDoesNotProduceNanStatus)
+{
+	ControlAllocationPseudoInverse method;
+	matrix::Matrix<float, 6, 16> effectiveness;
+	matrix::Vector<float, 16> actuator_trim;
+	matrix::Vector<float, 16> linearization_point;
+	matrix::Vector<float, 16> actuator_sp;
+
+	effectiveness.setZero();
+	actuator_trim.setZero();
+	linearization_point.setZero();
+	actuator_sp.setZero();
+
+	effectiveness(ControlAllocation::ROLL, 0) = 1.f;
+	effectiveness(ControlAllocation::ROLL, 1) = 2.f;
+	actuator_sp(0) = NAN;
+	actuator_sp(1) = 0.5f;
+
+	method.setEffectivenessMatrix(effectiveness, actuator_trim, linearization_point, 2, false);
+	method.setActuatorSetpoint(actuator_sp);
+
+	const matrix::Vector<float, 6> control_allocated = method.getAllocatedControl();
+	EXPECT_TRUE(control_allocated.isAllFinite());
+	EXPECT_FLOAT_EQ(control_allocated(ControlAllocation::ROLL), 1.f);
+}

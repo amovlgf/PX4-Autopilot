@@ -73,6 +73,11 @@ void AutopilotTesterFailure::set_param_com_act_fail_act(int value)
 	CHECK(getParams()->set_param_int("COM_ACT_FAIL_ACT", value) == Param::Result::Success);
 }
 
+void AutopilotTesterFailure::set_param_com_fail_act_t(float value)
+{
+	CHECK(getParams()->set_param_float("COM_FAIL_ACT_T", value) == Param::Result::Success);
+}
+
 void AutopilotTesterFailure::inject_failure(mavsdk::Failure::FailureUnit failure_unit,
 		mavsdk::Failure::FailureType failure_type, int instance, mavsdk::Failure::Result expected_result)
 {
@@ -97,4 +102,44 @@ void AutopilotTesterFailure::ensure_motor_stopped(unsigned index, unsigned num_m
 			CHECK(status.actuator[i] >= 999.f);
 		}
 	}
+}
+
+void AutopilotTesterFailure::wait_until_landing(std::chrono::seconds timeout)
+{
+	if (getTelemetry()->flight_mode() == Telemetry::FlightMode::Land) {
+		return;
+	}
+
+	std::promise<void> prom;
+	auto fut = prom.get_future();
+
+	Telemetry::FlightModeHandle handle = getTelemetry()->subscribe_flight_mode(
+	[&prom, &handle, this](Telemetry::FlightMode new_flight_mode) {
+		if (new_flight_mode == Telemetry::FlightMode::Land) {
+			getTelemetry()->unsubscribe_flight_mode(handle);
+			prom.set_value();
+		}
+	});
+
+	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+}
+
+void AutopilotTesterFailure::wait_until_on_ground(std::chrono::seconds timeout)
+{
+	if (getTelemetry()->landed_state() == Telemetry::LandedState::OnGround) {
+		return;
+	}
+
+	std::promise<void> prom;
+	auto fut = prom.get_future();
+
+	Telemetry::LandedStateHandle handle = getTelemetry()->subscribe_landed_state(
+	[&prom, &handle, this](Telemetry::LandedState landed_state) {
+		if (landed_state == Telemetry::LandedState::OnGround) {
+			getTelemetry()->unsubscribe_landed_state(handle);
+			prom.set_value();
+		}
+	});
+
+	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
 }

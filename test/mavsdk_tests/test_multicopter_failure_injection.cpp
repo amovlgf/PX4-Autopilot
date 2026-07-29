@@ -51,3 +51,40 @@ TEST_CASE("Failure Injection - Reject mid-air when it is disabled", "[multicopte
 	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
+
+TEST_CASE("Failure Injection - Quad single motor failure lands", "[multicopter]")
+{
+	const float flight_altitude = 2.5f;
+	const float hover_speed_tolerance = 1.0f;
+
+	AutopilotTesterFailure tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
+
+	tester.set_param_sys_failure_en(true);
+	tester.set_param_fd_act_en(false);
+	tester.set_param_mc_airmode(1);
+	tester.set_param_ca_failure_mode(1);
+	tester.set_param_com_act_fail_act(2);
+	tester.set_param_com_fail_act_t(5.f);
+	tester.set_takeoff_altitude(flight_altitude);
+	tester.enable_actuator_output_status();
+	tester.sleep_for(std::chrono::seconds(1));
+
+	tester.arm();
+	tester.takeoff();
+	tester.wait_until_hovering();
+	tester.wait_until_altitude(flight_altitude, std::chrono::seconds(30));
+	tester.wait_until_speed_lower_than(hover_speed_tolerance, std::chrono::seconds(30));
+
+	const int motor_instance = 1;
+	const unsigned num_motors = 4;
+	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off, motor_instance,
+			      mavsdk::Failure::Result::Success);
+	tester.sleep_for(std::chrono::seconds(1));
+	tester.ensure_motor_stopped(motor_instance - 1, num_motors);
+
+	tester.wait_until_landing(std::chrono::seconds(3));
+	tester.wait_until_on_ground(std::chrono::seconds(60));
+	tester.wait_until_disarmed(std::chrono::seconds(30));
+}

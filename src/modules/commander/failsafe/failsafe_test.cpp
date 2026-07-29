@@ -154,6 +154,38 @@ TEST_F(FailsafeTest, General)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 }
 
+TEST_F(FailsafeTest, QuadMotorFailureLandBypassesGlobalDelay)
+{
+	int32_t actuator_failure_action = 2;
+	int32_t failure_mode = 1;
+	int32_t rotor_count = 4;
+	param_set(param_handle(px4::params::COM_ACT_FAIL_ACT), &actuator_failure_action);
+	param_set(param_handle(px4::params::CA_FAILURE_MODE), &failure_mode);
+	param_set(param_handle(px4::params::CA_ROTOR_COUNT), &rotor_count);
+
+	Failsafe failsafe(nullptr);
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+	failsafe_flags.fd_motor_failure = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Land);
+
+	actuator_failure_action = 0;
+	failure_mode = 0;
+	rotor_count = 0;
+	param_set(param_handle(px4::params::COM_ACT_FAIL_ACT), &actuator_failure_action);
+	param_set(param_handle(px4::params::CA_FAILURE_MODE), &failure_mode);
+	param_set(param_handle(px4::params::CA_ROTOR_COUNT), &rotor_count);
+}
+
 TEST_F(FailsafeTest, Takeover)
 {
 	FailsafeTester failsafe(nullptr);
