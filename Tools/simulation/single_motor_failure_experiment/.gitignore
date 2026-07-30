@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 *.ulg
 forum_draft*.md
+!forum_draft_zh.md
