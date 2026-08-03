@@ -206,7 +206,9 @@ these into successful powered landings.
 - `generated/plots/`: figures generated from the formal matrix;
 - `environment.txt`: pinned source and tool environment;
 - `validation.md`: commands, outcomes, and known validation blockers;
+- `forum_draft.md`: tracked English PX4 forum article draft;
 - `forum_draft_zh.md`: tracked Chinese PX4 forum article draft.
 
-The Chinese forum draft is tracked so it can be reviewed and recovered. Other
-forum draft variants and raw `.ulg` files remain outside the Git history.
+The synchronized English and Chinese forum drafts are tracked so they can be
+reviewed and recovered. Other draft variants and raw `.ulg` files remain
+outside the Git history.
