@@ -21,3 +21,8 @@ icm42688p -R 4 -s start
 
 # Internal barometer on SPI1
 ms5611 -s start
+
+# 5V
+tmp102 start -X -b 4 -a 0x48
+# H7
+tmp102 start -X -b 4 -a 0x49
