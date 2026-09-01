@@ -34,7 +34,11 @@
 #ifndef NAMED_VALUE_FLOAT_HPP
 #define NAMED_VALUE_FLOAT_HPP
 
+#include <drivers/drv_sensor.h>
+#include <lib/drivers/device/Device.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/debug_key_value.h>
+#include <uORB/topics/sensor_temp.h>
 
 class MavlinkStreamNamedValueFloat : public MavlinkStream
 {
@@ -49,16 +53,20 @@ public:
 
 	unsigned get_size() override
 	{
-		return _debug_key_value_sub.advertised() ? MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		const unsigned message_size = MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_debug_key_value_sub.advertised() ? message_size : 0)
+		       + _sensor_temp_subs.advertised_count() * message_size;
 	}
 
 private:
 	explicit MavlinkStreamNamedValueFloat(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _debug_key_value_sub{ORB_ID(debug_key_value)};
+	uORB::SubscriptionMultiArray<sensor_temp_s> _sensor_temp_subs{ORB_ID::sensor_temp};
 
 	bool send() override
 	{
+		bool updated = false;
 		debug_key_value_s debug;
 
 		if (_debug_key_value_sub.update(&debug)) {
@@ -71,10 +79,45 @@ private:
 
 			mavlink_msg_named_value_float_send_struct(_mavlink->get_channel(), &msg);
 
-			return true;
+			updated = true;
 		}
 
-		return false;
+		for (int i = 0; i < _sensor_temp_subs.size(); i++) {
+			sensor_temp_s sensor_temp;
+
+			if (_sensor_temp_subs[i].update(&sensor_temp)) {
+				device::Device::DeviceId device_id{};
+				device_id.devid = sensor_temp.device_id;
+
+				if (device_id.devid_s.devtype != DRV_TEMP_DEVTYPE_TMP102) {
+					continue;
+				}
+
+				const char *name = nullptr;
+
+				if (device_id.devid_s.address == 0x48) {
+					name = "TMP102_48";
+
+				} else if (device_id.devid_s.address == 0x49) {
+					name = "TMP102_49";
+
+				} else {
+					continue;
+				}
+
+				mavlink_named_value_float_t msg{};
+				msg.time_boot_ms = sensor_temp.timestamp / 1000ULL;
+				memcpy(msg.name, name, sizeof(msg.name));
+				msg.name[sizeof(msg.name) - 1] = '\0';
+				msg.value = sensor_temp.temperature;
+
+				mavlink_msg_named_value_float_send_struct(_mavlink->get_channel(), &msg);
+
+				updated = true;
+			}
+		}
+
+		return updated;
 	}
 };
 
