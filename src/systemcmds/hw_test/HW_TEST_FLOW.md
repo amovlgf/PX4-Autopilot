@@ -122,22 +122,26 @@ flowchart TD
 ### 5.1 前置条件
 
 - BMI088 与 ICM42688P 驱动已在系统中运行
-- FRAM 路径 `/fs/mtd_params` 可访问
+- FRAM 的 MTD 驱动已初始化；`hw_test` 会自动使能 `mtd` 命令，要求非精简 Flash 的 NuttX 配置
+- 测试期间不得有其他任务写入被测分区（包括参数自动保存和手动保存）
 
 ### 5.2 执行步骤
 
-1. 在 2s 窗口内采集 `vehicle_imu`、`sensor_accel`、`sensor_gyro`
-2. 识别四路设备：
+1. 执行 `mtd rwtest`，对默认 MTD 实例 0 的全部分区逐块读取、原位写回、再次读取比较；ICF6 对应 `/fs/mtd_params`（32 KiB）
+2. 显示 `[PASS] FRAM` 或 `[FAIL] FRAM (mtd rwtest returned ...)`；失败则显示 `[FAIL] SPI` 并返回
+3. FRAM 测试通过后，在 2s 窗口内采集 `vehicle_imu`、`sensor_accel`、`sensor_gyro`，避免 FRAM 测试耗时影响 IMU 新鲜度
+4. 识别四路设备：
    - BMI088 accel/gyro
    - ICM42688P accel/gyro
-3. 检查四路“新鲜度”是否都在 200ms 内
-4. 打开 FRAM 文件验证可访问
-5. 若 error_count 基线完整，检查增量必须为 0
+5. 检查四路“新鲜度”是否都在 200ms 内
+6. 四路 error_count 基线必须完整，检查增量必须为 0
 
 ### 5.3 判定逻辑
 
-- 任一路缺失/不新鲜/error_count 增长 => FAIL
+- `mtd rwtest` 返回非 0，或任一路 IMU 缺失/不新鲜/error_count 基线缺失或增长 => FAIL
 - 全部满足 => PASS
+
+FRAM 测试保留原有数据，验证原数据写回后的读取一致性；不包含测试花样写入或断电保持测试。
 
 ## 6. `i2c` 测试
 

@@ -1,6 +1,8 @@
 menuconfig SYSTEMCMDS_HW_TEST
 	bool "hw_test"
 	default n
+	depends on PLATFORM_NUTTX && !BOARD_CONSTRAINED_FLASH
+	select SYSTEMCMDS_MTD
 	---help---
 		Enable support for hw_test
 

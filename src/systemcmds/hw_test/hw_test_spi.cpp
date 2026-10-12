@@ -2,24 +2,27 @@
  * hw_test SPI — 测试逻辑与命令备注（现场产测快速参考）
  *
  * 目标
- *   通过 IMU 运行状态 + FRAM 可访问性，验证 SPI1/SPI2 总线连通与稳定性。
+ *   通过 IMU 运行状态 + FRAM 读写校验，验证 SPI1/SPI2/SPI4 通信。
  *
  * 当前判定逻辑（test_spi）
- *   1) 在 2s 观察窗口内采集多实例 uORB：
+ *   1) 调用 mtd rwtest（默认 MTD 实例 0 的全部分区）：
+ *      - 逐块读取原数据、原位写回、再次读取比较；返回 0 才通过
+ *      - 独立显示 FRAM PASS/FAIL；失败则 SPI 直接判 FAIL
+ *      - 测试期间不得有其他任务写入被测分区（包括参数保存）
+ *   2) 在 FRAM 测试完成后，开始 2s 观察窗口采集多实例 uORB：
  *      - vehicle_imu（主判定来源，识别 accel/gyro 对应的设备类型）
  *      - sensor_accel / sensor_gyro（用于 error_count 增量判定）
- *   2) 必须识别到四项传感器状态：
+ *   3) 必须识别到四项传感器状态：
  *      - BMI088 accel + gyro
  *      - ICM42688P accel + gyro
- *   3) 四路流都必须“新鲜”：
+ *   4) 四路流都必须“新鲜”：
  *      - 最近更新时间 <= 200 ms（kSpiFreshWindowUs）
- *   4) FRAM 路径可访问：
- *      - open("/fs/mtd_params", O_RDONLY) 成功
  *   5) 四路 error_count 基线必须完整：
  *      - 检查窗口内 error_count 增量必须为 0（任何增长判 FAIL）
  *      - 基线缺失直接判 FAIL
  *
  * 输出含义
+ *   - [PASS] FRAM / [FAIL] FRAM(...): mtd rwtest 的结果
  *   - SPI IMU detect:      四项识别状态
  *   - SPI IMU fresh<=...:  四项新鲜度状态
  *   - SPI err_count ...:   first -> last 与 delta
@@ -38,7 +41,7 @@
  *   - IMU status missing: 未识别到某路 BMI/ICM（驱动未起、device_id 不匹配、总线/连接问题）
  *   - IMU stream stale:   识别到但更新不连续（采样中断、调度堵塞、总线不稳）
  *   - IMU error_count increased: 窗口内错误计数上涨（链路稳定性差）
- *   - FRAM open failed:   参数存储 SPI 路径不可访问
+ *   - FRAM read/write test failed: mtd rwtest 失败，详见前面的 MTD/FRAM 日志
  */
 
 #include "hw_test.h"
@@ -53,10 +56,10 @@
 #include <drivers/drv_sensor.h>
 #include <lib/drivers/device/Device.hpp>
 
-#include <fcntl.h>
-#include <unistd.h>
 #include <errno.h>
 #include <inttypes.h>
+
+extern "C" int mtd_main(int argc, char *argv[]);
 
 static constexpr const char *kTestName = "SPI";
 static constexpr unsigned kSpiSensorWaitMs = 2000;
@@ -218,18 +221,25 @@ static SpiSensorSeen wait_for_spi_sensor_status()
 
 int test_spi()
 {
+	char arg0[] = "mtd";
+	char arg1[] = "rwtest";
+	char *argv[] = {arg0, arg1, nullptr};
+
+	PX4_INFO("FRAM: running mtd rwtest");
+	const int fram_ret = mtd_main(2, argv);
+
+	if (fram_ret != 0) {
+		HW_TEST_FAIL("FRAM", "mtd rwtest returned %d", fram_ret);
+		HW_TEST_FAIL(kTestName, "FRAM read/write test failed");
+		return fram_ret;
+	}
+
+	HW_TEST_PASS("FRAM");
+
+	// Collect IMU data after the blocking FRAM test to preserve the freshness window.
 	const SpiSensorSeen seen = wait_for_spi_sensor_status();
 	PX4_INFO("SPI IMU detect: BMI(a:%d g:%d) ICM(a:%d g:%d)",
 		 seen.accel_bmi, seen.gyro_bmi, seen.accel_icm, seen.gyro_icm);
-
-	const int fram_fd = open("/fs/mtd_params", O_RDONLY);
-
-	if (fram_fd < 0) {
-		HW_TEST_FAIL(kTestName, "FRAM open failed: %d", errno);
-		return -errno;
-	}
-
-	close(fram_fd);
 
 	if (!seen.accel_bmi || !seen.gyro_bmi || !seen.accel_icm || !seen.gyro_icm) {
 		HW_TEST_FAIL(kTestName,

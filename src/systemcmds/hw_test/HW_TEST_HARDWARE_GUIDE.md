@@ -15,7 +15,7 @@
 | `hw_test can` / `hw_test can_ext` | 单项 / 全流程第 2 项 | CAN1 ↔ CAN2 双向互测（两者相同） |
 | `hw_test can_tx <0\|1> [duration_s] [period_ms] [loopback]` | 调试 / 产测 | 单路 CAN 周期发帧（给分析仪） |
 | `hw_test can_rx <0\|1> [duration_s]` | 调试 / 产测 | 单路 CAN 监听并打印帧 |
-| `hw_test spi` | 单项 / 全流程第 3 项 | SPI 双 IMU + **FRAM 可访问性** |
+| `hw_test spi` | 单项 / 全流程第 3 项 | SPI 双 IMU + **FRAM 读写校验（mtd rwtest）** |
 | `hw_test i2c` | 单项 / 全流程第 4 项 | I2C1 / I2C4 探测同一颗 BMI088（并联夹具） |
 | `hw_test sd` | 单项 / 全流程第 5 项 | SD 卡读写压测 |
 | `hw_test pwm` | 单项 / 全流程第 6 项 | PWM 输出 + 蜂鸣器（ICF6 含 GPIO 回退） |
@@ -45,18 +45,20 @@ FRAM 合并在 **`hw_test spi`** 中，作为判定步骤之一。FRAM 硬件接
 
 ```text
 SPI4 ──► FRAM ──► /fs/mtd_params
-open("/fs/mtd_params", O_RDONLY) 成功 → FRAM/SPI4 路径可访问
+mtd rwtest → 读取原数据 → 原位写回 → 再次读取比较 → FRAM PASS/FAIL
 ```
 
-失败日志示例：`FRAM open failed`。
+直接调用 `mtd rwtest`，测试默认 MTD 实例 0 的全部分区；当前 ICF6 对应 32 KiB 的 `/fs/mtd_params`。保留 MTD 的分区路径、测试字节数和错误日志，并单独显示 `[PASS] FRAM` 或 `[FAIL] FRAM (mtd rwtest returned ...)`。FRAM 失败时整项 SPI 判 FAIL。
+
+测试期间不得有其他任务写入被测分区（包括参数自动保存和手动保存），以免原数据写回覆盖并发更新。该测试验证原数据写回后的读取一致性，不包含测试花样写入或断电保持测试。
 
 ### 2.1 `hw_test spi` 完整判定
 
-1. 在 2 s 窗口内采集 `vehicle_imu`、`sensor_accel`、`sensor_gyro`
-2. 必须识别四路：BMI088 accel/gyro、ICM42688P accel/gyro
-3. 四路更新时间均 ≤ 200 ms（新鲜）
-4. **打开 `/fs/mtd_params` 验证 FRAM 路径可访问**
-5. 若 error_count 基线完整，窗口内增量必须为 0
+1. 执行 `mtd rwtest`，返回 0 才通过，并显示 FRAM 的 PASS/FAIL
+2. FRAM 测试通过后，在 2 s 窗口内采集 `vehicle_imu`、`sensor_accel`、`sensor_gyro`
+3. 必须识别四路：BMI088 accel/gyro、ICM42688P accel/gyro
+4. 四路更新时间均 ≤ 200 ms（新鲜）；FRAM 测试在采集前完成，避免耗时造成误判
+5. 四路 error_count 基线必须完整，窗口内增量必须为 0
 
 ### 2.2 手动辅助命令
 
@@ -243,20 +245,31 @@ SPI 测试验证三条 SPI 总线上的器件是否正常通信：
 |------|------|----------|
 | **SPI1** | BMI088 accel/gyro | 板载，**无需外接** |
 | **SPI2** | ICM42688P accel/gyro | 板载，**无需外接** |
-| **SPI4** | FRAM | 板载，**无需外接**；软件通过 `open("/fs/mtd_params")` 验证 |
+| **SPI4** | FRAM | 板载，**无需外接**；软件通过 `mtd rwtest` 验证 |
 
 | 项目 | 说明 |
 |------|------|
-| 前置条件 | 上电后 `rc.board_sensors` 已 start BMI088、ICM42688P |
+| 前置条件 | 上电后 `rc.board_sensors` 已 start BMI088、ICM42688P；MTD 已初始化，测试期间无其他任务写入被测分区 |
 | IMU 判定 | 2 s 内四路 uORB 数据新鲜（BMI088 a/g + ICM42688P a/g） |
-| FRAM 判定 | `/fs/mtd_params` 打开成功 |
+| FRAM 判定 | `mtd rwtest` 返回 0；独立显示 FRAM PASS/FAIL，失败则整项 SPI 失败 |
 | 产测夹具 | 无额外 SPI 飞线；检查板载 IMU、FRAM 焊接与供电 |
 
 ```bash
 hw_test spi
 ```
 
-典型失败：`IMU status missing`（SPI1/SPI2 器件未识别）、`IMU stream stale`（SPI 通信异常）、`FRAM open failed`（SPI4/FRAM 路径不可访问）。
+通过时的关键输出示例（省略日志前缀及 IMU 详细状态）：
+
+```text
+FRAM: running mtd rwtest
+rwtest /fs/mtd_params testing 32768 bytes
+rwtest OK
+[PASS] FRAM
+...
+[PASS] SPI
+```
+
+典型失败：`IMU status missing`（SPI1/SPI2 器件未识别）、`IMU stream stale`（SPI 通信异常）、`[FAIL] FRAM (mtd rwtest returned ...)` 和 `[FAIL] SPI (FRAM read/write test failed)`（详见前面的 MTD 错误日志）。
 
 ---
 

@@ -232,7 +232,8 @@ int mtd_readtest(const mtd_instance_s &instance)
   rwtest is useful during startup to validate the device is
   responding on the bus for both reads and writes. It reads data in
   blocks and writes the data back, then reads it again, failing if the
-  data isn't the same
+  data isn't the same. Run only when no other task is writing to the
+  tested partitions, otherwise writing back old data can overwrite updates.
  */
 int mtd_rwtest(const mtd_instance_s &instance)
 {
@@ -259,6 +260,13 @@ int mtd_rwtest(const mtd_instance_s &instance)
 
 			if (fd == -1) {
 				PX4_ERR("Failed to open partition");
+				return 1;
+			}
+
+			// Each open starts at zero; read the block that will be written back.
+			if (lseek(fd, offset, SEEK_SET) != offset) {
+				PX4_ERR("seek before read failed");
+				close(fd);
 				return 1;
 			}
 
