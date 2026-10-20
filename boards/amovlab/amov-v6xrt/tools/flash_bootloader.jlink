@@ -1,0 +1,5 @@
+// DESTRUCTIVE: use only after backup, JEDEC/capacity and loader verification.
+h
+loadbin build/amovlab_amov-v6xrt_bootloader/amovlab_amov-v6xrt_bootloader.bin, 0x30000000
+verifybin build/amovlab_amov-v6xrt_bootloader/amovlab_amov-v6xrt_bootloader.bin, 0x30000000
+exit

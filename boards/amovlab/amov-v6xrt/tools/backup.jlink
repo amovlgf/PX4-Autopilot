@@ -1,0 +1,6 @@
+// Run from the repository root, with the documented device and loader selected.
+// Read only. Existing flash must already be readable; check the log and both files.
+h
+savebin build/amov-v6xrt-original-1.bin, 0x30000000, 0x1000000
+savebin build/amov-v6xrt-original-2.bin, 0x30000000, 0x1000000
+exit

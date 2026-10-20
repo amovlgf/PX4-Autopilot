@@ -1,0 +1,5 @@
+// DESTRUCTIVE: use only after the bootloader has been independently verified.
+h
+loadbin build/amovlab_amov-v6xrt_default/amovlab_amov-v6xrt_default.bin, 0x30020000
+verifybin build/amovlab_amov-v6xrt_default/amovlab_amov-v6xrt_default.bin, 0x30020000
+exit

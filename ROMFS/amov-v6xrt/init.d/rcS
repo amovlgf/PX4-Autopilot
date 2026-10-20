@@ -1,0 +1,25 @@
+#!/bin/sh
+# AMOV-V6XRT: communication bring-up only, without external storage.
+set +e
+ver all
+
+# Fail visibly at the UART prompt if RAM storage cannot be mounted.
+if mount -t tmpfs /fs/ram
+then
+	param select /fs/ram/parameters.bson
+	param load-or-init
+else
+	echo "ERROR: RAM parameter filesystem unavailable"
+	exit 1
+fi
+
+param set-default SYS_USB_AUTO 2
+
+# Keep normal Commander health checks; missing sensors prevent readiness.
+commander start
+load_mon start
+send_event start
+cdcacm_autostart start
+mavlink boot_complete
+
+echo "AMOV-V6XRT: RAM parameters, USB MAVLink; not flight capable"
