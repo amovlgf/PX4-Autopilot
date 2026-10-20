@@ -1,0 +1,60 @@
+#!/bin/sh
+#
+# @name 3DR Iris Quadrotor SITL jMAVSim
+#
+# @type Quadrotor Wide
+#
+# @maintainer Julian Oes <julian@oes.ch>
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default CA_AIRFRAME 0
+
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.1515
+param set-default CA_ROTOR0_PY 0.245
+param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR1_PX -0.1515
+param set-default CA_ROTOR1_PY -0.1875
+param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR2_PX 0.1515
+param set-default CA_ROTOR2_PY -0.245
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.1515
+param set-default CA_ROTOR3_PY 0.1875
+param set-default CA_ROTOR3_KM -0.05
+
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+
+# Use the native IMU voter with one EKF. The second IMU is available for
+# sensor-level redundancy without adding estimator selection behavior.
+param set-default SENS_IMU_MODE 1
+param set-default EKF2_MULTI_IMU 0
+param set-default EKF2_MULTI_MAG 0
+
+# Publish all model sensors, initially fuse GNSS position/height/velocity/yaw.
+# Barometer, range and external vision remain observable for later experiments.
+param set-default EKF2_GPS_CTRL 15
+param set-default EKF2_EV_CTRL 0
+param set-default EKF2_BARO_CTRL 0
+param set-default EKF2_RNG_CTRL 0
+param set-default EKF2_HGT_REF 1
+param set-default EKF2_MAG_TYPE 5
+
+# HIL_GPS id=0: simulation bus=0, address=0, device type=0xAF.
+param set-default SENS_GNSS0_ID 11468804
+param set-default SENS_GNSS0_HDG 2
+param set-default SENS_GNSS0_OFFX 0.0
+param set-default SENS_GNSS0_OFFY 0.0
+param set-default SENS_GNSS0_OFFZ 0.0
+param set-default SENS_GNSS0_AUXX 0.5
+param set-default SENS_GNSS0_AUXY 0.0
+param set-default SENS_GNSS0_AUXZ 0.0
+param set-default SENS_GNSS0_DELAY 200
+param set-default EKF2_EV_DELAY 40
+param set-default SIM_GPS_VEL_ERR 0.05
+param set-default SIM_GPS_YAW_ERR 0.5

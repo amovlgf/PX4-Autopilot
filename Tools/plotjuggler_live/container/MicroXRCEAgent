@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Keep the Agent's Fast DDS libraries separate from ROS Humble's libraries.
+agent_prefix=/opt/micro-xrce-dds-agent
+export LD_LIBRARY_PATH="${agent_prefix}/lib:${agent_prefix}/lib/x86_64-linux-gnu:${agent_prefix}/lib/aarch64-linux-gnu"
+exec "${agent_prefix}/bin/MicroXRCEAgent" "$@"

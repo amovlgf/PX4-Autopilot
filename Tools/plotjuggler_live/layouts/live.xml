@@ -1,0 +1,205 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root>
+ <tabbed_widget name="Main Window" parent="main_window">
+  <Tab containers="1" tab_name="Attitude">
+   <Container>
+    <DockSplitter count="4" orientation="-" sizes="0.250203;0.250203;0.249391;0.250203">
+     <DockArea name="Roll [deg]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.130368" left="66.756784" right="195.382232" top="0.204548" />
+       <limitY />
+       <curve color="#1f77b4" name="/px4_monitor/attitude_deg/vector/x" />
+      </plot>
+     </DockArea>
+     <DockArea name="Pitch [deg]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.140753" left="66.756784" right="195.382232" top="0.220432" />
+       <limitY />
+       <curve color="#1f77b4" name="/px4_monitor/attitude_deg/vector/y" />
+      </plot>
+     </DockArea>
+     <DockArea name="Yaw [deg]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.183129" left="66.756784" right="195.382232" top="0.203947" />
+       <limitY />
+       <curve color="#1f77b4" name="/px4_monitor/attitude_deg/vector/z" />
+      </plot>
+     </DockArea>
+     <DockArea name="Yaw unwrapped [deg]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.183129" left="66.756784" right="195.382232" top="0.203947" />
+       <limitY />
+       <curve color="#1f77b4" name="/px4_monitor/yaw_unwrapped_deg/data" />
+      </plot>
+     </DockArea>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab containers="1" tab_name="Rate Control">
+   <Container>
+    <DockSplitter count="4" orientation="-" sizes="0.250203;0.250203;0.249391;0.250203">
+     <DockArea name="Roll rate: measured / setpoint [rad/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.022459" left="66.741568" right="195.371151" top="0.022964" />
+       <limitY />
+       <curve color="#1f77b4" name="/fmu/out/vehicle_angular_velocity/xyz[0]" />
+       <curve color="#d62728" name="/fmu/out/vehicle_rates_setpoint/roll" />
+      </plot>
+     </DockArea>
+     <DockArea name="Pitch rate: measured / setpoint [rad/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.019921" left="66.741568" right="195.371151" top="0.020379" />
+       <limitY />
+       <curve color="#1f77b4" name="/fmu/out/vehicle_angular_velocity/xyz[1]" />
+       <curve color="#d62728" name="/fmu/out/vehicle_rates_setpoint/pitch" />
+      </plot>
+     </DockArea>
+     <DockArea name="Yaw rate: measured / setpoint [rad/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.020781" left="66.741568" right="195.371151" top="0.022353" />
+       <limitY />
+       <curve color="#1f77b4" name="/fmu/out/vehicle_angular_velocity/xyz[2]" />
+       <curve color="#d62728" name="/fmu/out/vehicle_rates_setpoint/yaw" />
+      </plot>
+     </DockArea>
+     <DockArea name="Body gyro x / y / z [rad/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.024042" left="66.741568" right="195.371151" top="0.023775" />
+       <limitY />
+       <curve color="#1f77b4" name="/fmu/out/sensor_combined/gyro_rad[0]" />
+       <curve color="#d62728" name="/fmu/out/sensor_combined/gyro_rad[1]" />
+       <curve color="#2ca02c" name="/fmu/out/sensor_combined/gyro_rad[2]" />
+      </plot>
+     </DockArea>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab containers="1" tab_name="Position">
+   <Container>
+    <DockSplitter count="4" orientation="-" sizes="0.250203;0.250203;0.249391;0.250203">
+     <DockArea name="North position [m]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.144041" left="66.755987" right="195.371119" top="0.143935" />
+       <limitY />
+       <curve color="#1f77b4" name="/fmu/out/vehicle_local_position_v1/x" />
+      </plot>
+     </DockArea>
+     <DockArea name="East position [m]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.119159" left="66.755987" right="195.371119" top="0.157253" />
+       <limitY />
+       <curve color="#1f77b4" name="/fmu/out/vehicle_local_position_v1/y" />
+      </plot>
+     </DockArea>
+     <DockArea name="Down position [m] (NED, positive down)">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.130556" left="66.755987" right="195.371119" top="0.074586" />
+       <limitY />
+       <curve color="#1f77b4" name="/fmu/out/vehicle_local_position_v1/z" />
+      </plot>
+     </DockArea>
+     <DockArea name="NED velocity x / y / z [m/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.092533" left="66.755987" right="195.371119" top="0.084100" />
+       <limitY />
+       <curve color="#1f77b4" name="/fmu/out/vehicle_local_position_v1/vx" />
+       <curve color="#d62728" name="/fmu/out/vehicle_local_position_v1/vy" />
+       <curve color="#2ca02c" name="/fmu/out/vehicle_local_position_v1/vz" />
+      </plot>
+     </DockArea>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab containers="1" tab_name="PID Analysis">
+   <Container>
+    <DockSplitter count="3" orientation="-" sizes="0.333604;0.332792;0.333604">
+     <DockArea name="Rate integrator roll / pitch / yaw [normalized torque]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="0.000000" left="66.741675" right="195.371157" top="0.000000" />
+       <limitY />
+       <curve color="#1f77b4" name="/fmu/out/rate_ctrl_status/rollspeed_integ" />
+       <curve color="#d62728" name="/fmu/out/rate_ctrl_status/pitchspeed_integ" />
+       <curve color="#2ca02c" name="/fmu/out/rate_ctrl_status/yawspeed_integ" />
+      </plot>
+     </DockArea>
+     <DockArea name="Torque setpoint x / y / z [normalized]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.009117" left="66.741675" right="195.371157" top="0.007360" />
+       <limitY />
+       <curve color="#1f77b4" name="/fmu/out/vehicle_torque_setpoint/xyz[0]" />
+       <curve color="#d62728" name="/fmu/out/vehicle_torque_setpoint/xyz[1]" />
+       <curve color="#2ca02c" name="/fmu/out/vehicle_torque_setpoint/xyz[2]" />
+      </plot>
+     </DockArea>
+     <DockArea name="Motor thrust 1 / 2 / 3 / 4 [normalized; NaN = disarmed]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.000070" left="66.741675" right="195.371157" top="0.002875" />
+       <limitY />
+       <curve color="#1f77b4" name="/fmu/out/actuator_motors/control[0]" />
+       <curve color="#d62728" name="/fmu/out/actuator_motors/control[1]" />
+       <curve color="#2ca02c" name="/fmu/out/actuator_motors/control[2]" />
+       <curve color="#ff7f0e" name="/fmu/out/actuator_motors/control[3]" />
+      </plot>
+     </DockArea>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <currentTabIndex index="0" />
+ </tabbed_widget>
+ <use_relative_time_offset enabled="1" />
+ <streaming_buffer_size value="60" />
+
+
+ <Plugins>
+  <plugin ID="DataLoad CSV">
+   <parameters delimiter="0" skip_rows="0" time_axis="" />
+  </plugin>
+  <plugin ID="DataLoad MCAP" />
+  <plugin ID="DataLoad ROS2 bags">
+   <use_header_stamp value="false" />
+   <discard_large_arrays value="true" />
+   <max_array_size value="100" />
+   <boolean_strings_to_number value="true" />
+   <remove_suffix_from_strings value="true" />
+   <selected_topics value="" />
+  </plugin>
+  <plugin ID="DataLoad ULog" />
+  <plugin ID="Foxglove ROS2 Bridge">
+   <foxglove_client clamp_large_arrays="0" max_array_size="500" url="ws://127.0.0.1:8765" use_timestamp="0">
+    <topics />
+   </foxglove_client>
+  </plugin>
+  <plugin ID="PlotJuggler Bridge">
+   <websocket_client clamp_large_arrays="0" max_array_size="500" url="ws://127.0.0.1:9090" use_timestamp="0">
+    <topics />
+   </websocket_client>
+  </plugin>
+  <plugin ID="ROS2 Topic Subscriber">
+   <use_header_stamp value="false" />
+   <discard_large_arrays value="false" />
+   <max_array_size value="100" />
+   <boolean_strings_to_number value="false" />
+   <remove_suffix_from_strings value="false" />
+   <selected_topics value="/fmu/out/actuator_motors;/fmu/out/estimator_status_flags;/fmu/out/rate_ctrl_status;/fmu/out/sensor_combined;/fmu/out/vehicle_angular_velocity;/fmu/out/vehicle_attitude;/fmu/out/vehicle_local_position_v1;/fmu/out/vehicle_odometry;/fmu/out/vehicle_rates_setpoint;/fmu/out/vehicle_status_v4;/fmu/out/vehicle_torque_setpoint;/px4_monitor/attitude_deg;/px4_monitor/yaw_unwrapped_deg" />
+  </plugin>
+  <plugin ID="UDP Server" />
+  <plugin ID="WebSocket Server" />
+  <plugin ID="ZMQ Subscriber" />
+  <plugin ID="CSV/Parquet Exporter" />
+  <plugin ID="Fast Fourier Transform" />
+  <plugin ID="Quaternion to RPY" />
+  <plugin ID="Reactive Script Editor">
+   <library code="--[[ Helper function to create a series from arrays   new_series: a series previously created with ScatterXY.new(name)  prefix:     prefix of the timeseries, before the index of the array  suffix_X:   suffix to complete the name of the series containing the X value. If [nil], use the index of the array.  suffix_Y:   suffix to complete the name of the series containing the Y value  timestamp:   usually the tracker_time variable                 Example:    Assuming we have multiple series in the form:      /trajectory/node.{X}/position/x    /trajectory/node.{X}/position/y      where {N} is the index of the array (integer). We can create a reactive series from the array with:      new_series = ScatterXY.new(&quot;my_trajectory&quot;)     CreateSeriesFromArray( new_series, &quot;/trajectory/node&quot;, &quot;position/x&quot;, &quot;position/y&quot;, tracker_time ); --]]  function CreateSeriesFromArray( new_series, prefix, suffix_X, suffix_Y, timestamp )      --- clear previous values   new_series:clear()      --- Append points to new_series   index = 0   while(true) do      x = index;     -- if not nil, get the X coordinate from a series     if suffix_X ~= nil then        series_x = TimeseriesView.find( string.format( &quot;%s.%d/%s&quot;, prefix, index, suffix_X) )       if series_x == nil then break end       x = series_x:atTime(timestamp)       end          series_y = TimeseriesView.find( string.format( &quot;%s.%d/%s&quot;, prefix, index, suffix_Y) )     if series_y == nil then break end      y = series_y:atTime(timestamp)          new_series:push_back(x,y)     index = index+1   end end  --[[ Similar to the built-in function GetSeriesNames(), but select only the names with a give prefix. --]]  function GetSeriesNamesByPrefix(prefix)   -- GetSeriesNames(9 is a built-in function   all_names = GetSeriesNames()   filtered_names = {}   for i, name in ipairs(all_names)  do     -- check the prefix     if name:find(prefix, 1, #prefix) then       table.insert(filtered_names, name);     end   end   return filtered_names end  --[[ Modify an existing series, applying offsets to all their X and Y values   series: an existing timeseries, obtained with TimeseriesView.find(name)  delta_x: offset to apply to each x value  delta_y: offset to apply to each y value     --]]  function ApplyOffsetInPlace(series, delta_x, delta_y)   -- use C++ indices, not Lua indices   for index=0, series:size()-1 do     x,y = series:at(index)     series:set(index, x + delta_x, y + delta_y)   end end " />
+   <scripts />
+  </plugin>
+  <plugin ID="ROS2 Topic Re-Publisher" />
+ </Plugins>
+
+ <previouslyLoaded_Datafiles />
+ <previouslyLoaded_Streamer name="ROS2 Topic Subscriber" />
+
+ <customMathEquations />
+ <snippets />
+ <colorMaps />
+
+</root>

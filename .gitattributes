@@ -65,6 +65,8 @@ Makefile.* text eol=lf
 
 # Text files where line endings should be preserved
 *.patch  -text
+# Blank context lines in these patches require a single space.
+Tools/simulation/jmavsim/patches/*.patch whitespace=-blank-at-eol
 
 # Archives
 *.7z     binary

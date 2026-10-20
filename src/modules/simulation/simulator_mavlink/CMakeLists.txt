@@ -34,6 +34,7 @@
 px4_add_module(
 	MODULE modules__simulation__simulator_mavlink
 	MAIN simulator_mavlink
+	MODULE_CONFIG module.yaml
 	COMPILE_FLAGS
 		-Wno-double-promotion
 		-Wno-cast-align
@@ -58,8 +59,11 @@ px4_add_module(
 
 include(sitl_targets_flightgear.cmake)
 include(sitl_targets_gazebo-classic.cmake)
+include(sitl_targets_jmavsim.cmake)
 include(sitl_targets_jsbsim.cmake)
 include(sitl_targets_xplane.cmake)
+
+px4_add_unit_gtest(SRC SimulatorSensorControlTest.cpp)
 
 # none_iris (legacy compatibility launch helper)
 add_custom_target(none_iris

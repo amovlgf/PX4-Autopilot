@@ -1,0 +1,63 @@
+module_name: simulator_mavlink
+parameters:
+- group: Simulation
+  definitions:
+    SIM_MAV_IMU:
+      description:
+        short: MAVLink simulator IMU publication mask
+        long: |
+          Controls publication of each simulated accelerometer and gyroscope pair.
+          Incoming measurements still advance simulation time when disabled.
+          At least one received IMU must remain enabled. Invalid changes are reverted.
+          The jMAVSim airframe resets this mask to 3 at each startup.
+      type: bitmask
+      bit:
+        0: IMU 1
+        1: IMU 2
+        2: IMU 3
+      default: 7
+      min: 1
+      max: 7
+    SIM_MAV_SENS:
+      description:
+        short: MAVLink simulator observation publication mask
+        long: |
+          Disabling an observation stops its publication to the flight controller,
+          while the simulation continues receiving it. GNSS position and GNSS
+          heading can be controlled independently. Does not select EKF fusion.
+          The jMAVSim airframe resets this mask to 63 at each startup.
+      type: bitmask
+      bit:
+        0: Barometer
+        1: Magnetometer
+        2: GNSS position and velocity
+        3: GNSS dual antenna heading
+        4: Rangefinder
+        5: Visual odometry
+      default: 63
+      min: 0
+      max: 63
+    SIM_GPS_VEL_ERR:
+      description:
+        short: HIL GNSS speed accuracy
+        long: |
+          Speed standard deviation reported to PX4. HIL_GPS has no speed accuracy
+          field. Match this value to the external simulator's configured noise.
+      type: float
+      default: 0.25
+      min: 0.001
+      max: 10
+      unit: m/s
+      decimal: 3
+    SIM_GPS_YAW_ERR:
+      description:
+        short: HIL GNSS heading accuracy
+        long: |
+          Heading standard deviation reported for HIL_GPS dual antenna yaw.
+          Match this value to the external simulator's configured yaw noise.
+      type: float
+      default: 0.5
+      min: 0.01
+      max: 45
+      unit: deg
+      decimal: 2

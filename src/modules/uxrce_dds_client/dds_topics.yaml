@@ -47,6 +47,7 @@ publications:
 
   - topic: /fmu/out/sensor_combined
     type: px4_msgs::msg::SensorCombined
+    rate_limit: 100.
 
   - topic: /fmu/out/timesync_status
     type: px4_msgs::msg::TimesyncStatus
@@ -55,8 +56,25 @@ publications:
   - topic: /fmu/out/transponder_report
     type: px4_msgs::msg::TransponderReport
 
-  # - topic: /fmu/out/vehicle_angular_velocity
-  #   type: px4_msgs::msg::VehicleAngularVelocity
+  - topic: /fmu/out/vehicle_angular_velocity
+    type: px4_msgs::msg::VehicleAngularVelocity
+    rate_limit: 100.
+
+  - topic: /fmu/out/vehicle_rates_setpoint
+    type: px4_msgs::msg::VehicleRatesSetpoint
+    rate_limit: 100.
+
+  - topic: /fmu/out/rate_ctrl_status
+    type: px4_msgs::msg::RateCtrlStatus
+    rate_limit: 50.
+
+  - topic: /fmu/out/vehicle_torque_setpoint
+    type: px4_msgs::msg::VehicleTorqueSetpoint
+    rate_limit: 100.
+
+  - topic: /fmu/out/actuator_motors
+    type: px4_msgs::msg::ActuatorMotors
+    rate_limit: 50.
 
   - topic: /fmu/out/vehicle_land_detected
     type: px4_msgs::msg::VehicleLandDetected

@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "verified_date": "2026-10-19",
+  "plotjuggler_version": "3.17.2",
+  "plotjuggler_ros_version": "2.3.1",
+  "source": "PlotJuggler native Save Layout, then retain all tabs or one tab; initial tab index normalized to zero; trailing whitespace removed on 2026-10-20 with parsed XML equivalence verified",
+  "native_save_sha256": "3ffbecbc85c11bff8721ed33d850ca25836901122c7a7cfd73ec8c72c0d543c9",
+  "message_manifest_fingerprint": "16ed4e58a284fd4543c771e28bc97aea7e975b6d376decda71737925c2ea2210",
+  "live_buffer_seconds": 60,
+  "required_cli_buffer_maximum": 61,
+  "gui_verified": true,
+  "flight_dynamic_test_included": false,
+  "interaction_checks": [
+    "Native Start Streaming and ROS topic confirmation",
+    "Live attitude/rate/position/PID curves",
+    "Measured and target rate overlay",
+    "Pause display",
+    "Rectangle zoom",
+    "Middle-button pan",
+    "Resume live display",
+    "Native Save Layout and reload",
+    "Load all four independent layouts"
+  ],
+  "limits": [
+    "This verification used the running disarmed jMAVSim instance; flight response is a separate test.",
+    "Controller integrators may remain zero while disarmed.",
+    "Raw NaN motor samples are not replaced or transformed."
+  ],
+  "files": {
+    "live.xml": {
+      "sha256": "ec77cd7e05cab5aba0de10a77cfaaebe5aa7fb60244842eb858f676cf25c314e",
+      "tabs": [
+        "Attitude",
+        "Rate Control",
+        "Position",
+        "PID Analysis"
+      ],
+      "curves": 29,
+      "screenshot": ".state/gui-final-live.png",
+      "gui_verified_sha256": "b0aed5dcc5844ad349fc9d8c0fbb8acbf957776161cbc12fbf2aaaa4ca1401c1"
+    },
+    "attitude.xml": {
+      "sha256": "790c1d60a4e7852dc8ef8ba2db61fe8750a6edea6bb5dc5e8950ca4828a09826",
+      "tabs": [
+        "Attitude"
+      ],
+      "curves": 4,
+      "screenshot": ".state/gui-single-attitude.png",
+      "gui_verified_sha256": "ea598d0715bceab92cf4635cf6ac114d80ad5bcaa5d1b02e22c293e21f05a549"
+    },
+    "rate_control.xml": {
+      "sha256": "d4e43bc8eb2bddba6397441dbbc8855490eb419e73ac611e2bedef18eb447a7a",
+      "tabs": [
+        "Rate Control"
+      ],
+      "curves": 9,
+      "screenshot": ".state/gui-single-rate-control.png",
+      "gui_verified_sha256": "c40ac01e7c40691148fca38a1089bb28e8a02a583905bff70a881cf24430931a"
+    },
+    "position.xml": {
+      "sha256": "09aa6c8b24981cb2a161d1c1a40aa6de44e4eccd2573d2063bd192d29a42e848",
+      "tabs": [
+        "Position"
+      ],
+      "curves": 6,
+      "screenshot": ".state/gui-single-position-pass.png",
+      "gui_verified_sha256": "3e1481f2355c8d59e2daae9f97d2bbada2f4a98a56d93b6121cefa811d9f915e"
+    },
+    "pid_analysis.xml": {
+      "sha256": "b00bb09274f386e772f0d072567a23f31bd6fcdd2bc9a2bc8d6f6239d35fbeb4",
+      "tabs": [
+        "PID Analysis"
+      ],
+      "curves": 10,
+      "screenshot": ".state/gui-single-pid-analysis.png",
+      "gui_verified_sha256": "c779c76aaa8176d76afbeb8f0d21c9ed4edcd35cc42d8cc1d78c30d0519bb4bf"
+    }
+  },
+  "finite_buffer_evidence": ".state/gui-finite-60.png",
+  "interaction_evidence": [
+    ".state/gui-paused-zoom.png",
+    ".state/gui-paused-pan.png"
+  ],
+  "settings": {
+    "file": "/work/home/.config/PlotJuggler/io.plotjuggler.PlotJuggler.ini",
+    "section": "General",
+    "key": "MainWindow.streamingBufferValue",
+    "value": 60
+  },
+  "sources": {
+    "native_xml": "https://github.com/PlotJuggler/PlotJuggler/blob/3.17.2/plotjuggler_app/mainwindow.cpp",
+    "ros_array_paths": "https://github.com/PlotJuggler/PlotJuggler/blob/3.17.2/plotjuggler_plugins/ParserROS/rosx_introspection/src/stringtree_leaf.cpp",
+    "ros_streamer_options": "https://github.com/PlotJuggler/plotjuggler-ros-plugins/blob/2.3.1/src/parser_configuration.cpp"
+  },
+  "whitespace_normalization": {
+    "date": "2026-10-20",
+    "change": "Removed trailing spaces and tabs only.",
+    "xml_semantics_preserved": true,
+    "comparison": "Element names, ordered attributes, non-whitespace text and tails, and child order; whitespace-only text and tails ignored.",
+    "gui_retested": false,
+    "gui_evidence": "Existing GUI evidence records the prior files identified by gui_verified_sha256; no new GUI test was run after normalization."
+  }
+}

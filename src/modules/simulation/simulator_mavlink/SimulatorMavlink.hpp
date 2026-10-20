@@ -42,6 +42,8 @@
 
 #pragma once
 
+#include "SimulatorSensorControl.hpp"
+
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
@@ -76,6 +78,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gnss.h>
+#include <uORB/topics/sensor_gnss_relative.h>
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -86,6 +89,7 @@
 #include <uORB/topics/rpm.h>
 
 #include <random>
+#include <mutex>
 
 #include <mavlink.h>
 #include <mavlink_types.h>
@@ -141,6 +145,8 @@ public:
 	};
 
 	static int start(int argc, char *argv[]);
+	int sensor_command(int argc, char *argv[]);
+	void print_status();
 
 	void set_ip(InternetProtocol ip) { _ip = ip; }
 	void set_port(unsigned port) { _port = port; }
@@ -161,6 +167,7 @@ public:
 
 		for (size_t i = 0; i < sizeof(_sensor_gnss_pubs) / sizeof(_sensor_gnss_pubs[0]); i++) {
 			delete _sensor_gnss_pubs[i];
+			delete _sensor_gnss_relative_pubs[i];
 		}
 
 		_instance = nullptr;
@@ -170,6 +177,29 @@ private:
 	SimulatorMavlink();
 
 	void updateFailureConfig();
+	void validate_sensor_masks(); // Caller holds _sensor_mutex.
+	bool sensor_enabled(simulator_sensor_control::Sensor sensor) const;
+	void sensor_received(simulator_sensor_control::Sensor sensor);
+	void sensor_published(simulator_sensor_control::Sensor sensor);
+
+	struct SensorStatistics {
+		uint64_t received{0};
+		uint64_t published{0};
+		hrt_abstime last_received{0};
+		hrt_abstime last_published{0};
+		float receive_rate{0.f};
+		float publish_rate{0.f};
+	};
+
+	// Receiver, sender and shell commands share masks, parameters and status under this mutex.
+	std::mutex _sensor_mutex;
+	SensorStatistics _sensor_statistics[simulator_sensor_control::Count] {};
+	uint8_t _imu_present_mask{0};
+	int32_t _imu_mask{simulator_sensor_control::ALL_IMUS};
+	int32_t _sensor_mask{simulator_sensor_control::ALL_SENSORS};
+	hrt_abstime _imu_transition_deadline{0};
+	hrt_abstime _last_controls_timestamp{0};
+	bool _imu_recovery_notified{false};
 
 	int publish_distance_topic(const mavlink_distance_sensor_t *dist);
 
@@ -221,7 +251,7 @@ private:
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_odometry_s>		_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 100_ms};
 
 	unsigned int _port{14560};
 
@@ -256,6 +286,7 @@ private:
 	void request_hil_state_quaternion();
 	void send();
 	void send_controls();
+	void recover_imu_transition();
 	void send_heartbeat();
 	void send_esc_telemetry(mavlink_hil_actuator_controls_t hil_act_control);
 	void send_mavlink_message(const mavlink_message_t &aMsg);
@@ -286,6 +317,7 @@ private:
 	// HIL GPS
 	static constexpr int MAX_GPS = 3;
 	uORB::PublicationMulti<sensor_gnss_s>	*_sensor_gnss_pubs[MAX_GPS] {};
+	uORB::PublicationMulti<sensor_gnss_relative_s> *_sensor_gnss_relative_pubs[MAX_GPS] {};
 	uint8_t _gps_ids[MAX_GPS] {};
 	std::default_random_engine _gen{};
 
@@ -313,6 +345,7 @@ private:
 
 	// Per-HIL_GPS-instance last-good sample, for the Stuck failure.
 	failure_injection::Stuck<sensor_gnss_s> _gnss_stuck[MAX_GPS];
+	failure_injection::Stuck<sensor_gnss_relative_s> _gnss_relative_stuck[MAX_GPS];
 
 	// airspeed and VIO failure injection (no PX4* helper class applies these).
 	bool _airspeed_disconnected{false};
@@ -330,6 +363,10 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
-		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id
+		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
+		(ParamInt<px4::params::SIM_MAV_IMU>) _param_sim_mav_imu,
+		(ParamInt<px4::params::SIM_MAV_SENS>) _param_sim_mav_sens,
+		(ParamFloat<px4::params::SIM_GPS_VEL_ERR>) _param_sim_gps_vel_err,
+		(ParamFloat<px4::params::SIM_GPS_YAW_ERR>) _param_sim_gps_yaw_err
 	)
 };

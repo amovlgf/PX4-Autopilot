@@ -1,0 +1,613 @@
+diff --git a/src/me/drton/jmavsim/GNSSReport.java b/src/me/drton/jmavsim/GNSSReport.java
+index 120ba64..fd260ec 100644
+--- a/src/me/drton/jmavsim/GNSSReport.java
++++ b/src/me/drton/jmavsim/GNSSReport.java
+@@ -13,7 +13,8 @@ public class GNSSReport {
+     public float epv;
+     public Vector3d velocity;
+     public int fix;     // 0 = no fix, 1 = time only, 2 = 2D fix, 3 = 3D fix
+-    public long time;   // UTC time in [us]
++    public long time;   // Sample time in [us]
++    public int heading; // MAVLink centidegrees; 0 unavailable, 36000 north
+ 
+     /**
+      * Get scalar horizontal speed.
+diff --git a/src/me/drton/jmavsim/MAVLinkHILSystem.java b/src/me/drton/jmavsim/MAVLinkHILSystem.java
+index 96c8269..ac45e24 100644
+--- a/src/me/drton/jmavsim/MAVLinkHILSystem.java
++++ b/src/me/drton/jmavsim/MAVLinkHILSystem.java
+@@ -39,6 +39,7 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
+      */
+     public MAVLinkHILSystem(MAVLinkSchema schema, int sysId, int componentId, AbstractVehicle vehicle) {
+         super(schema, sysId, componentId, vehicle);
++        protocolVersion = 2; // HIL sensor IDs, GNSS yaw and odometry quality require MAVLink 2.
+     }
+ 
+     @Override
+@@ -49,6 +50,7 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
+     @Override
+     public void handleMessage(MAVLinkMessage msg) {
+         super.handleMessage(msg);
++        protocolVersion = 2; // Never downgrade after a MAVLink 1 heartbeat.
+         long t = simulator.getSimMillis();
+         if ("HIL_ACTUATOR_CONTROLS".equals(msg.getMsgName())) {
+             gotHilActuatorControls = true;
+@@ -187,6 +189,7 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
+         int sensor_source = 0;
+ 
+         msg_sensor.set("time_usec", tu);
++        msg_sensor.set("id", 0);
+         Vector3d tv = sensors.getAcc();
+         msg_sensor.set("xacc", tv.x);
+         msg_sensor.set("yacc", tv.y);
+@@ -213,6 +216,24 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
+         }
+         sendMessage(msg_sensor);
+ 
++        if (sensors instanceof PositionSourceSensors) {
++            PositionSourceSensors positionSensors = (PositionSourceSensors)sensors;
++            MAVLinkMessage secondary = new MAVLinkMessage(schema, "HIL_SENSOR", sysId, componentId, protocolVersion);
++            secondary.set("time_usec", tu);
++            secondary.set("id", 1);
++            Vector3d acceleration = positionSensors.getAcc(1);
++            Vector3d angularRate = positionSensors.getGyro(1);
++            secondary.set("xacc", acceleration.x);
++            secondary.set("yacc", acceleration.y);
++            secondary.set("zacc", acceleration.z);
++            secondary.set("xgyro", angularRate.x);
++            secondary.set("ygyro", angularRate.y);
++            secondary.set("zgyro", angularRate.z);
++            secondary.set("fields_updated", 0x3f); // Acceleration and angular rate only.
++            sendMessage(secondary);
++            sendPositionObservations(positionSensors);
++        }
++
+         /* ground truth */
+         if (hilStateUpdateInterval != -1 && nextHilStatePub <= tu) {
+             MAVLinkMessage msg_hil_state = new MAVLinkMessage(schema, "HIL_STATE_QUATERNION", sysId,
+@@ -227,7 +248,8 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
+             msg_hil_state.set("pitchspeed", (float) v3d.y);
+             msg_hil_state.set("yawspeed", (float) v3d.z);
+ 
+-            int alt = (int)(1000 * vehicle.position.z);
++            // HIL_STATE_QUATERNION altitude is MSL millimeters, not local NED down.
++            int alt = (int)Math.round(1000 * sensors.getGlobalPosition().alt);
+             msg_hil_state.set("alt", alt);
+             msg_hil_state.set("lat", (int)(sensors.getGlobalPosition().lat * 1.e7));
+             msg_hil_state.set("lon", (int)(sensors.getGlobalPosition().lon * 1.e7));
+@@ -257,17 +279,21 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
+             GNSSReport gps = sensors.getGNSS();
+             if (gps != null && gps.position != null && gps.velocity != null) {
+                 MAVLinkMessage msg_gps = new MAVLinkMessage(schema, "HIL_GPS", sysId, componentId, protocolVersion);
+-                msg_gps.set("time_usec", tu);
+-                msg_gps.set("lat", (long)(gps.position.lat * 1e7));
+-                msg_gps.set("lon", (long)(gps.position.lon * 1e7));
+-                msg_gps.set("alt", (long)(gps.position.alt * 1e3));
+-                msg_gps.set("vn", (int)(gps.velocity.x * 100));
+-                msg_gps.set("ve", (int)(gps.velocity.y * 100));
+-                msg_gps.set("vd", (int)(gps.velocity.z * 100));
+-                msg_gps.set("eph", (int)(gps.eph * 100f));
+-                msg_gps.set("epv", (int)(gps.epv * 100f));
+-                msg_gps.set("vel", (int)(gps.getSpeed() * 100));
+-                msg_gps.set("cog", (int) Math.toDegrees(gps.getCog()) * 100);
++                // Keep the physical sampling epoch. PX4 stamps receipt in simulator time
++                // and accounts for the configured receiver delay exactly once.
++                msg_gps.set("time_usec", gps.time);
++                msg_gps.set("id", 0);
++                msg_gps.set("yaw", gps.heading);
++                msg_gps.set("lat", Math.round(gps.position.lat * 1e7));
++                msg_gps.set("lon", Math.round(gps.position.lon * 1e7));
++                msg_gps.set("alt", Math.round(gps.position.alt * 1e3));
++                msg_gps.set("vn", (int)Math.round(gps.velocity.x * 100));
++                msg_gps.set("ve", (int)Math.round(gps.velocity.y * 100));
++                msg_gps.set("vd", (int)Math.round(gps.velocity.z * 100));
++                msg_gps.set("eph", Math.round(gps.eph * 100f));
++                msg_gps.set("epv", Math.round(gps.epv * 100f));
++                msg_gps.set("vel", (int)Math.round(gps.getSpeed() * 100));
++                msg_gps.set("cog", (int)Math.round((Math.toDegrees(gps.getCog()) + 360.0) % 360.0 * 100.0));
+                 msg_gps.set("fix_type", gps.fix);
+                 msg_gps.set("satellites_visible", 10);
+                 sendMessage(msg_gps);
+@@ -285,6 +311,50 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
+         }
+     }
+ 
++    private void sendPositionObservations(PositionSourceSensors sensors) {
++        PositionSourceSensors.RangeReport range = sensors.takeRange();
++        if (range != null) {
++            MAVLinkMessage message = new MAVLinkMessage(schema, "DISTANCE_SENSOR", sysId, componentId, protocolVersion);
++            boolean valid = Double.isFinite(range.distance);
++            message.set("time_boot_ms", range.time);
++            message.set("min_distance", (int)Math.round(sensors.rangeMinimum * 100));
++            message.set("max_distance", (int)Math.round(sensors.rangeMaximum * 100));
++            // Above maximum denotes an unavailable measurement; quality also explicitly rejects it.
++            message.set("current_distance", valid ? (int)Math.round(range.distance * 100)
++                        : (int)Math.round(sensors.rangeMaximum * 100) + 1);
++            message.set("type", 0); // MAV_DISTANCE_SENSOR_LASER.
++            message.set("id", 0);
++            message.set("orientation", 25); // MAV_SENSOR_ROTATION_PITCH_270: body down.
++            message.set("covariance", Math.min(254, (int)Math.round(sensors.rangeStd * sensors.rangeStd * 10000)));
++            message.set("signal_quality", valid ? 100 : 1); // MAVLink 1 is invalid, 100 is best.
++            sendMessage(message);
++        }
++
++        PositionSourceSensors.VisionReport vision = sensors.takeVision();
++        if (vision != null) {
++            MAVLinkMessage message = new MAVLinkMessage(schema, "ODOMETRY", sysId, componentId, protocolVersion);
++            message.set("time_usec", vision.time * 1000);
++            message.set("frame_id", 1); // MAV_FRAME_LOCAL_NED.
++            message.set("child_frame_id", 1); // Linear and angular velocities expressed in NED.
++            message.set("x", vision.position.x);
++            message.set("y", vision.position.y);
++            message.set("z", vision.position.z);
++            message.set("q", vision.quaternion);
++            message.set("vx", vision.velocity.x);
++            message.set("vy", vision.velocity.y);
++            message.set("vz", vision.velocity.z);
++            message.set("rollspeed", vision.angularVelocity.x);
++            message.set("pitchspeed", vision.angularVelocity.y);
++            message.set("yawspeed", vision.angularVelocity.z);
++            message.set("pose_covariance", vision.poseCovariance);
++            message.set("velocity_covariance", vision.velocityCovariance);
++            message.set("reset_counter", 0);
++            message.set("estimator_type", 2); // MAV_ESTIMATOR_TYPE_VISION.
++            message.set("quality", 100);
++            sendMessage(message);
++        }
++    }
++
+     private void reset() {
+         gotHeartBeat = false;
+         inited = false;
+diff --git a/src/me/drton/jmavsim/PositionSourceSensors.java b/src/me/drton/jmavsim/PositionSourceSensors.java
+new file mode 100644
+index 0000000..f2679e1
+--- /dev/null
++++ b/src/me/drton/jmavsim/PositionSourceSensors.java
+@@ -0,0 +1,269 @@
++package me.drton.jmavsim;
++
++import java.util.Random;
++import javax.vecmath.AxisAngle4d;
++import javax.vecmath.Matrix3d;
++import javax.vecmath.Vector3d;
++import me.drton.jmavlib.geo.GlobalPositionProjector;
++import me.drton.jmavlib.geo.LatLonAlt;
++
++/** Two independent IMUs and truth-derived RTK, heading, range and visual odometry measurements. */
++public class PositionSourceSensors extends SimpleSensors {
++    private final SensorModel.Config config = new SensorModel.Config();
++    private final Random[] imuRandom = {
++        new Random(config.seed("imu1.seed", 1001)), new Random(config.seed("imu2.seed", 1002))
++    };
++    private final Random magRandom = new Random(config.seed("mag.seed", 2001));
++    private final Random baroRandom = new Random(config.seed("baro.seed", 2002));
++    private final Random gnssRandom = new Random(config.seed("gnss.seed", 3001));
++    private final Random headingRandom = new Random(config.seed("heading.seed", 3002));
++    private final Random rangeRandom = new Random(config.seed("range.seed", 4001));
++    private final Random visionRandom = new Random(config.seed("vision.seed", 5001));
++    private final double accelerationStd = config.number("imu.acceleration_std_m_s2", 0.05, 0.0, 10.0);
++    private final double angularRateStd = config.number("imu.angular_rate_std_rad_s", 0.01, 0.0, 1.0);
++    private final double magneticStd = config.number("mag.std_gauss", 0.005, 0.0, 1.0);
++    private final double pressureAltitudeStd = config.number("baro.altitude_std_m", 0.1, 0.0, 100.0);
++    private final double gnssPeriod = config.period("gnss.rate_hz", 20);
++    private final double gnssHorizontalStd = config.number("gnss.horizontal_std_m", 0.02, 0.01, 100.0);
++    private final double gnssVerticalStd = config.number("gnss.vertical_std_m", 0.03, 0.01, 100.0);
++    private final double gnssVelocityStd = config.number("gnss.velocity_std_m_s", 0.05, 0.001, 10.0);
++    private final double gnssCorrelation = config.number("gnss.correlation_time_s", 10, 0.1, 3600);
++    private final double headingBaseline = config.number("heading.baseline_m", 0.5, 0.01, 10);
++    private final double headingMinimumHorizontal = config.number("heading.minimum_horizontal_m", 0.05, 0.001, 10);
++    private final double headingStd = Math.toRadians(config.number("heading.std_deg", 0.5, 0.01, 45));
++    private final double rangePeriod = config.period("range.rate_hz", 20);
++    public final double rangeMinimum = config.number("range.minimum_m", 0.1, 0.01, 600);
++    public final double rangeMaximum = config.number("range.maximum_m", 30, rangeMinimum, 650);
++    public final double rangeStd = config.number("range.std_m", 0.02, 0, 10);
++    private final double visionPeriod = config.period("vision.rate_hz", 25);
++    private final double visionPositionStd = config.number("vision.position_std_m", 0.05, 0.001, 100);
++    private final double visionVelocityStd = config.number("vision.velocity_std_m_s", 0.05, 0.001, 10);
++    private final double visionAttitudeStd = Math.toRadians(config.number("vision.attitude_std_deg", 0.5, 0.001, 90));
++    private final double visionAngularRateStd = config.number("vision.angular_rate_std_rad_s", 0.01, 0.001, 1);
++    private final Vector3d visionDriftRate = new Vector3d(
++        config.number("vision.drift_north_m_s", 0, -10, 10),
++        config.number("vision.drift_east_m_s", 0, -10, 10),
++        config.number("vision.drift_down_m_s", 0, -10, 10));
++    private final SensorModel.Delay<GNSSReport> gnssDelay = new SensorModel.Delay<GNSSReport>(
++        config.number("gnss.delay_ms", 200, 0, 300));
++    private final SensorModel.Delay<VisionReport> visionDelay = new SensorModel.Delay<VisionReport>(
++        config.number("vision.delay_ms", 40, 0, 300));
++    private final GlobalPositionProjector projector = new GlobalPositionProjector();
++    private final Vector3d gnssPositionError = new Vector3d();
++    private final Vector3d gnssVelocityError = new Vector3d();
++    private DynamicObject body;
++    private GNSSReport gnss;
++    private boolean gnssUpdated;
++    private RangeReport range;
++    private VisionReport vision;
++    private double nextGnss;
++    private double nextRange;
++    private double nextVision;
++    private long lastGnss = -1;
++    private long startTime;
++    private double pressureAltitude;
++    private LatLonAlt trueGlobalPosition;
++
++    public PositionSourceSensors() {
++        // The lockstep physics scheduler and IMU outputs must use the same frequency.
++        config.number("imu.rate_hz", 250, 250, 250);
++    }
++
++    @Override
++    public void setObject(DynamicObject object, long time) {
++        super.setObject(object, time);
++        body = object;
++        projector.init(object.getWorld().getGlobalReference());
++        startTime = time;
++        nextGnss = nextRange = nextVision = time;
++        updateTruePosition();
++    }
++
++    private void updateTruePosition() {
++        Vector3d position = body.getPosition();
++        trueGlobalPosition = projector.reproject(new double[] {position.x, position.y, position.z});
++    }
++
++    @Override
++    public LatLonAlt getGlobalPosition() {
++        return trueGlobalPosition;
++    }
++
++    @Override
++    public Vector3d getAcc() {
++        return getAcc(0);
++    }
++
++    public Vector3d getAcc(int index) {
++        Vector3d acceleration = new Vector3d(body.getAcceleration());
++        acceleration.sub(body.getWorld().getEnvironment().getG());
++        Matrix3d nedToBody = new Matrix3d(body.getRotation());
++        nedToBody.transpose();
++        nedToBody.transform(acceleration);
++        return SensorModel.noise(acceleration, accelerationStd, imuRandom[index]);
++    }
++
++    @Override
++    public Vector3d getGyro() {
++        return getGyro(0);
++    }
++
++    public Vector3d getGyro(int index) {
++        return SensorModel.noise(body.getRotationRate(), angularRateStd, imuRandom[index]);
++    }
++
++    @Override
++    public Vector3d getMag() {
++        Vector3d magnetic = new Vector3d(body.getWorld().getEnvironment().getMagField(body.getPosition()));
++        Matrix3d nedToBody = new Matrix3d(body.getRotation());
++        nedToBody.transpose();
++        nedToBody.transform(magnetic);
++        magnetic.scale(getMagScale());
++        return SensorModel.noise(magnetic, magneticStd, magRandom);
++    }
++
++    @Override
++    public double getPressureAlt() {
++        return pressureAltitude;
++    }
++
++    @Override
++    public double getPressure() {
++        // Pressure and pressure altitude are one measurement, not two independent noise draws.
++        return SimpleEnvironment.alt2baro(pressureAltitude);
++    }
++
++    @Override
++    public GNSSReport getGNSS() {
++        return gnss;
++    }
++
++    @Override
++    public boolean isGPSUpdated() {
++        boolean updated = gnssUpdated;
++        gnssUpdated = false;
++        return updated;
++    }
++
++    public RangeReport takeRange() {
++        RangeReport result = range;
++        range = null;
++        return result;
++    }
++
++    public VisionReport takeVision() {
++        VisionReport result = vision;
++        vision = null;
++        return result;
++    }
++
++    @Override
++    public void update(long time, boolean paused) {
++        if (paused) {
++            return;
++        }
++        updateTruePosition();
++        pressureAltitude = trueGlobalPosition.alt + pressureAltitudeStd * baroRandom.nextGaussian();
++
++        if (getGPSStartTime() >= 0 && time >= getGPSStartTime() && time >= nextGnss) {
++            if (lastGnss < 0) {
++                nextGnss = time;
++            }
++            nextGnss += gnssPeriod;
++            GNSSReport report = sampleGnss(time);
++            gnssDelay.add(time, report);
++        }
++        GNSSReport delayedGnss = gnssDelay.poll(time);
++        if (delayedGnss != null) {
++            gnss = delayedGnss;
++            gnssUpdated = true;
++        }
++
++        if (time >= nextRange) {
++            nextRange += rangePeriod;
++            double distance = SensorModel.groundRange(body.getPosition().z,
++                body.getWorld().getEnvironment().getGroundLevelAt(body.getPosition()), body.getRotation(),
++                rangeMinimum, rangeMaximum, rangeStd * rangeRandom.nextGaussian());
++            range = new RangeReport(time, distance);
++        }
++
++        if (time >= nextVision) {
++            nextVision += visionPeriod;
++            visionDelay.add(time, sampleVision(time));
++        }
++        VisionReport delayedVision = visionDelay.poll(time);
++        if (delayedVision != null) {
++            vision = delayedVision;
++        }
++    }
++
++    private GNSSReport sampleGnss(long time) {
++        double dt = lastGnss < 0 ? gnssPeriod * 0.001 : (time - lastGnss) * 0.001;
++        lastGnss = time;
++        gnssPositionError.x = SensorModel.correlatedError(gnssPositionError.x, gnssHorizontalStd, dt, gnssCorrelation, gnssRandom);
++        gnssPositionError.y = SensorModel.correlatedError(gnssPositionError.y, gnssHorizontalStd, dt, gnssCorrelation, gnssRandom);
++        gnssPositionError.z = SensorModel.correlatedError(gnssPositionError.z, gnssVerticalStd, dt, gnssCorrelation, gnssRandom);
++        gnssVelocityError.x = SensorModel.correlatedError(gnssVelocityError.x, gnssVelocityStd, dt, gnssCorrelation, gnssRandom);
++        gnssVelocityError.y = SensorModel.correlatedError(gnssVelocityError.y, gnssVelocityStd, dt, gnssCorrelation, gnssRandom);
++        gnssVelocityError.z = SensorModel.correlatedError(gnssVelocityError.z, gnssVelocityStd, dt, gnssCorrelation, gnssRandom);
++        Vector3d position = new Vector3d(body.getPosition());
++        position.add(gnssPositionError);
++        GNSSReport report = new GNSSReport();
++        report.position = projector.reproject(new double[] {position.x, position.y, position.z});
++        report.velocity = new Vector3d(body.getVelocity());
++        report.velocity.add(gnssVelocityError);
++        report.eph = (float)gnssHorizontalStd;
++        report.epv = (float)gnssVerticalStd;
++        report.fix = 6; // MAVLink GPS_FIX_TYPE_RTK_FIXED.
++        report.time = time * 1000;
++        report.heading = SensorModel.headingCentidegrees(body.getRotation(), headingBaseline,
++            headingMinimumHorizontal, headingStd * headingRandom.nextGaussian());
++        return report;
++    }
++
++    private VisionReport sampleVision(long time) {
++        VisionReport report = new VisionReport();
++        report.time = time;
++        report.position = SensorModel.noise(body.getPosition(), visionPositionStd, visionRandom);
++        Vector3d drift = new Vector3d(visionDriftRate);
++        drift.scale((time - startTime) * 0.001);
++        report.position.add(drift);
++        report.velocity = SensorModel.noise(body.getVelocity(), visionVelocityStd, visionRandom);
++        report.velocity.add(visionDriftRate);
++        Matrix3d rotation = new Matrix3d(body.getRotation());
++        Vector3d angleError = SensorModel.noise(new Vector3d(), visionAttitudeStd, visionRandom);
++        Matrix3d errorRotation = new Matrix3d();
++        double errorAngle = angleError.length();
++        if (errorAngle > 0.0) {
++            angleError.scale(1.0 / errorAngle);
++            errorRotation.set(new AxisAngle4d(angleError, errorAngle));
++            rotation.mul(errorRotation);
++        }
++        report.quaternion = SensorModel.quaternion(rotation);
++        // child_frame_id is LOCAL_NED: angular velocity uses that frame too.
++        report.angularVelocity = SensorModel.noise(body.getRotationRate(), visionAngularRateStd, visionRandom);
++        body.getRotation().transform(report.angularVelocity);
++        report.poseCovariance = SensorModel.covariance(visionPositionStd, visionAttitudeStd);
++        report.velocityCovariance = SensorModel.covariance(visionVelocityStd, visionAngularRateStd);
++        return report;
++    }
++
++    public static final class RangeReport {
++        public final long time;
++        public final double distance;
++        RangeReport(long time, double distance) {
++            this.time = time;
++            this.distance = distance;
++        }
++    }
++
++    public static final class VisionReport {
++        public long time;
++        public Vector3d position;
++        public Vector3d velocity;
++        public Float[] quaternion;
++        public Vector3d angularVelocity;
++        public Float[] poseCovariance;
++        public Float[] velocityCovariance;
++    }
++}
+diff --git a/src/me/drton/jmavsim/SensorModel.java b/src/me/drton/jmavsim/SensorModel.java
+new file mode 100644
+index 0000000..0bb05f5
+--- /dev/null
++++ b/src/me/drton/jmavsim/SensorModel.java
+@@ -0,0 +1,133 @@
++package me.drton.jmavsim;
++
++import java.io.FileInputStream;
++import java.io.IOException;
++import java.util.ArrayDeque;
++import java.util.Properties;
++import java.util.Random;
++import javax.vecmath.Matrix3d;
++import javax.vecmath.Quat4d;
++import javax.vecmath.Vector3d;
++
++/** Shared measurement geometry, deterministic noise and simulation-time delays. */
++public final class SensorModel {
++    private SensorModel() {
++    }
++
++    public static final class Config {
++        private final Properties values = new Properties();
++
++        public Config() {
++            String filename = System.getProperty("jmavsim.sensorConfig");
++            if (filename != null) {
++                try (FileInputStream stream = new FileInputStream(filename)) {
++                    values.load(stream);
++                } catch (IOException e) {
++                    throw new IllegalArgumentException("Cannot read sensor configuration " + filename, e);
++                }
++            }
++        }
++
++        public double number(String name, double fallback, double minimum, double maximum) {
++            double value = Double.parseDouble(values.getProperty(name, Double.toString(fallback)));
++            if (!Double.isFinite(value) || value < minimum || value > maximum) {
++                throw new IllegalArgumentException(name + " must be between " + minimum + " and " + maximum);
++            }
++            return value;
++        }
++
++        public long seed(String name, long fallback) {
++            return Long.parseLong(values.getProperty(name, Long.toString(fallback)));
++        }
++
++        public double period(String name, double fallback) {
++            return 1000.0 / number(name, fallback, 1.0, 250.0);
++        }
++    }
++
++    public static final class Timed<T> {
++        public final long time;
++        public final T value;
++        public Timed(long time, T value) {
++            this.time = time;
++            this.value = value;
++        }
++    }
++
++    /** Returns each delayed sample exactly once, including while the producer is between samples. */
++    public static final class Delay<T> {
++        private final ArrayDeque<Timed<T>> queue = new ArrayDeque<Timed<T>>();
++        private final double delayMs;
++        public Delay(double delayMs) {
++            this.delayMs = delayMs;
++        }
++        public void add(long time, T value) {
++            queue.addLast(new Timed<T>(time, value));
++        }
++        public T poll(long time) {
++            if (!queue.isEmpty() && time - queue.peekFirst().time >= delayMs) {
++                return queue.removeFirst().value;
++            }
++            return null;
++        }
++    }
++
++    /** Correlated receiver error with bounded uniform innovations, stationary variance stddev^2. */
++    public static double correlatedError(double previous, double stddev, double dt,
++                                         double correlationTime, Random random) {
++        double decay = Math.exp(-dt / correlationTime);
++        return decay * previous + stddev * Math.sqrt(3.0 * (1.0 - decay * decay))
++               * (2.0 * random.nextDouble() - 1.0);
++    }
++
++    public static Vector3d noise(Vector3d value, double stddev, Random random) {
++        return new Vector3d(value.x + stddev * random.nextGaussian(),
++                            value.y + stddev * random.nextGaussian(),
++                            value.z + stddev * random.nextGaussian());
++    }
++
++    /** MAVLink HIL_GPS yaw uses zero for invalid and 36000 for due north. */
++    public static int headingCentidegrees(Matrix3d bodyToNed, double baseline,
++                                          double minimumHorizontal, double noiseRadians) {
++        double north = baseline * bodyToNed.m00;
++        double east = baseline * bodyToNed.m10;
++        if (Math.hypot(north, east) < minimumHorizontal) {
++            return 0;
++        }
++        double degrees = (Math.toDegrees(Math.atan2(east, north) + noiseRadians) % 360.0 + 360.0) % 360.0;
++        int centidegrees = (int)Math.round(degrees * 100.0);
++        return centidegrees == 0 ? 36000 : centidegrees;
++    }
++
++    /** Range from the body origin along +body Z to the horizontal ground plane, NED coordinates. */
++    public static double groundRange(double downPosition, double groundDown, Matrix3d bodyToNed,
++                                      double minimum, double maximum, double noiseMeters) {
++        if (bodyToNed.m22 <= 0.0) {
++            return Double.NaN;
++        }
++        double distance = (groundDown - downPosition) / bodyToNed.m22;
++        if (distance < minimum || distance > maximum) {
++            return Double.NaN;
++        }
++        return Math.max(minimum, Math.min(maximum, distance + noiseMeters));
++    }
++
++    /** Unit quaternion in MAVLink [w,x,y,z] order, rotation body FRD to local NED. */
++    public static Float[] quaternion(Matrix3d bodyToNed) {
++        Quat4d quaternion = new Quat4d();
++        quaternion.set(bodyToNed);
++        quaternion.normalize();
++        return new Float[] {(float)quaternion.w, (float)quaternion.x, (float)quaternion.y, (float)quaternion.z};
++    }
++
++    public static Float[] covariance(double linearStd, double angularStd) {
++        Float[] covariance = new Float[21];
++        java.util.Arrays.fill(covariance, 0.0f);
++        int[] diagonal = {0, 6, 11, 15, 18, 20};
++        for (int index = 0; index < diagonal.length; ++index) {
++            double std = index < 3 ? linearStd : angularStd;
++            covariance[diagonal[index]] = (float)(std * std);
++        }
++        return covariance;
++    }
++}
+diff --git a/src/me/drton/jmavsim/Simulator.java b/src/me/drton/jmavsim/Simulator.java
+index c6c6ca4..4bdfd77 100644
+--- a/src/me/drton/jmavsim/Simulator.java
++++ b/src/me/drton/jmavsim/Simulator.java
+@@ -440,9 +440,14 @@ public class Simulator implements Runnable {
+     }
+ 
+     private AbstractMulticopter buildMulticopter() {
++        return buildMulticopter(world, vehicle_model, SHOW_GUI, getSimMillis());
++    }
++
++    // The same factory is exercised by the headless sensor model integration test.
++    static AbstractMulticopter buildMulticopter(World world, String model, boolean showGui, long time) {
+         Vector3d gc = new Vector3d(0.0, 0.0, 0.0);  // gravity center
+-        AbstractMulticopter vehicle = new Quadcopter(world, vehicle_model, "x", "default",
+-                                                     0.33 / 2, 4.0, 0.05, 0.005, gc, SHOW_GUI);
++        AbstractMulticopter vehicle = new Quadcopter(world, model, "x", "default",
++                                                     0.33 / 2, 4.0, 0.05, 0.005, gc, showGui);
+         Matrix3d I = new Matrix3d();
+         // Moments of inertia
+         I.m00 = 0.005;  // X
+@@ -451,14 +456,8 @@ public class Simulator implements Runnable {
+         vehicle.setMomentOfInertia(I);
+         vehicle.setMass(0.8);
+         vehicle.setDragMove(0.01);
+-        SimpleSensors sensors = new SimpleSensors();
+-        sensors.setGPSInterval(50);
+-        sensors.setGPSDelay(200);
+-        sensors.setNoise_Acc(0.05f);
+-        sensors.setNoise_Gyo(0.01f);
+-        sensors.setNoise_Mag(0.005f);
+-        sensors.setNoise_Prs(0.1f);
+-        vehicle.setSensors(sensors, getSimMillis());
++        SimpleSensors sensors = new PositionSourceSensors();
++        vehicle.setSensors(sensors, time);
+         //v.setDragRotate(0.1);
+ 
+         return vehicle;

@@ -1,0 +1,14 @@
+#!/bin/sh
+# shellcheck disable=SC2154
+
+echo "INFO  [init] jMAVSim simulator"
+
+# Sensor publication controls are reset for every simulation session. EKF
+# fusion parameters remain user-configurable across restarts.
+param set SIM_MAV_IMU 3
+param set SIM_MAV_SENS 63
+
+simulator_tcp_port=$((4560+px4_instance))
+./jmavsim_run.sh -l -r 250 -p "$simulator_tcp_port" &
+
+simulator_mavlink start -h localhost "$simulator_tcp_port"
