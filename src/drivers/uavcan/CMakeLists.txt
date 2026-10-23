@@ -106,6 +106,9 @@ set(DSDLC_INPUTS
 	"${DSDLC_DIR}/dronecan"
 	"${DSDLC_DIR}/uavcan"
 )
+if(CONFIG_UAVCAN_DEVICE_BRIDGE)
+	list(APPEND DSDLC_INPUTS "${PX4_SOURCE_DIR}/protocol/amov_device_bridge/dsdl/amov")
+endif()
 set(DSDLC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/dsdlc_generated")
 
 set(DSDLC_INPUT_FILES)
@@ -124,6 +127,11 @@ add_custom_command(OUTPUT px4_uavcan_dsdlc_run.stamp
 )
 add_custom_target(px4_uavcan_dsdlc DEPENDS px4_uavcan_dsdlc_run.stamp)
 
+set(DEVICE_BRIDGE_SRCS)
+if(CONFIG_UAVCAN_DEVICE_BRIDGE)
+	list(APPEND DEVICE_BRIDGE_SRCS UavcanDeviceBridge.cpp)
+endif()
+
 px4_add_module(
 	MODULE drivers__uavcan
 	MAIN uavcan
@@ -139,6 +147,7 @@ px4_add_module(
 		${LIBDRONECAN_DIR_DRIVERS}/posix/include
 		${LIBDRONECAN_DIR_DRIVERS}/${UAVCAN_DRIVER}/driver/include
 	SRCS
+		${DEVICE_BRIDGE_SRCS}
 		arming_status.cpp
 		arming_status.hpp
 		beep.cpp
@@ -203,3 +212,7 @@ px4_add_module(
 
 		failure_injection
 	)
+
+if(CONFIG_UAVCAN_DEVICE_BRIDGE)
+	target_link_libraries(drivers__uavcan PRIVATE device_bridge)
+endif()

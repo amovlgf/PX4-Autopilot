@@ -193,7 +193,8 @@ px4::atomic_bool Mavlink::_boot_complete{false};
 
 Mavlink::Mavlink() :
 	ModuleParams(nullptr),
-	_receiver(*this)
+	_receiver(*this),
+	_device_bridge(*this)
 {
 	// initialise parameter cache
 	mavlink_update_parameters();
@@ -2747,6 +2748,7 @@ Mavlink::task_main(int argc, char *argv[])
 		// thread already takes this lock around its own sends; taking it here
 		// prevents a race with those. Each helper below takes it internally
 		// around the actual mavlink send call.
+		_device_bridge.update();
 		handleStatus();
 		handleCommands();
 		handleAndGetCurrentCommandAck();

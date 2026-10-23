@@ -282,6 +282,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_statustext(msg);
 		break;
 
+	case MAVLINK_MSG_ID_AMOV_DEVICE_REQUEST:
+		_mavlink.handle_device_request(*msg);
+		break;
+
 	case MAVLINK_MSG_ID_AMOV_RID_IDENTITY_REQUEST:
 		handleRidIdentityRequest(_mavlink, *msg);
 		break;

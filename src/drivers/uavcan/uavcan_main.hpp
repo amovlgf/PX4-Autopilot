@@ -95,6 +95,9 @@
 #include <uavcan/protocol/global_time_sync_slave.hpp>
 #include <uavcan/protocol/node_info_retriever.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
+#if defined(CONFIG_UAVCAN_DEVICE_BRIDGE)
+#include "UavcanDeviceBridge.hpp"
+#endif
 #include <uavcan/protocol/param/ExecuteOpcode.hpp>
 #include <uavcan/protocol/param/GetSet.hpp>
 #include <uavcan/protocol/RestartNode.hpp>
@@ -295,6 +298,9 @@ private:
 	uavcan::GlobalTimeSyncMaster	_time_sync_master;
 	uavcan::GlobalTimeSyncSlave	_time_sync_slave;
 	uavcan::NodeStatusMonitor	_node_status_monitor;
+#if defined(CONFIG_UAVCAN_DEVICE_BRIDGE)
+	UavcanDeviceBridge _device_bridge;
+#endif
 
 	uavcan::NodeInfoRetriever   _node_info_retriever;
 	NodeInfoPublisher           _node_info_publisher;

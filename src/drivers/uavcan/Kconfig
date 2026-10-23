@@ -6,6 +6,14 @@ menuconfig DRIVERS_UAVCAN
 		Enable support for uavcan
 
 if DRIVERS_UAVCAN
+    config UAVCAN_DEVICE_BRIDGE
+        bool "Opaque MAVLink device service bridge"
+        default n
+        depends on MODULES_MAVLINK
+        help
+            Forward bounded management payloads to a selected DroneCAN node.
+            This transport does not interpret device settings or flight state.
+
     config UAVCAN_ARMING_CONTROLLER
         bool "Include arming status controller"
         default y

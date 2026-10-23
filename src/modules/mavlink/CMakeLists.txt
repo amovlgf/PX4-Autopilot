@@ -123,6 +123,7 @@ px4_add_module(
 		mavlink_parameters.cpp
 		mavlink_rate_limiter.cpp
 		RidProtocol.cpp
+		MavlinkDeviceBridge.cpp
 		mavlink_receiver.cpp
 		mavlink_shell.cpp
 		mavlink_simple_analyzer.cpp
@@ -160,6 +161,9 @@ if(CONFIG_DRIVERS_SERIALPASSTHROUGH)
 endif()
 
 target_link_libraries(modules__mavlink PRIVATE failure_injection)
+if(CONFIG_UAVCAN_DEVICE_BRIDGE)
+	target_link_libraries(modules__mavlink PRIVATE device_bridge)
+endif()
 
 px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
 	INCLUDES
@@ -174,6 +178,10 @@ px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
 	)
 
 px4_add_unit_gtest(SRC MavlinkFtpParamTest.cpp EXTRA_SRCS mavlink_ftp_param.cpp)
+px4_add_unit_gtest(SRC DeviceBridgeTest.cpp)
+if(TARGET unit-DeviceBridge)
+	add_dependencies(unit-DeviceBridge uorb_headers)
+endif()
 
 if(CONFIG_NET AND "${PX4_PLATFORM}" MATCHES "nuttx")
 	target_link_libraries(modules__mavlink PRIVATE nuttx_apps) # netlib_get_ipv4netmask

@@ -61,6 +61,31 @@ int main(int argc, char **argv)
     mavlink_amov_rid_identity_t identity;
     mavlink_amov_uom_status_t status;
     expected(&request, &identity, &status);
+    mavlink_amov_device_request_t device_request;
+    mavlink_amov_device_response_t device_response;
+    memset(&device_request, 0, sizeof(device_request));
+    memset(&device_response, 0, sizeof(device_response));
+    device_request.session_id = request.session_id;
+    device_request.request_id = 0xfedcba98;
+    device_request.target_system = 42;
+    device_request.target_component = 1;
+    device_request.protocol_version = 1;
+    device_request.operation = AMOV_DEVICE_OPERATION_TRANSFER;
+    device_request.node_id = 127;
+    device_request.payload_length = 192;
+    device_response.session_id = device_request.session_id;
+    device_response.request_id = device_request.request_id;
+    device_response.target_system = 255;
+    device_response.target_component = 190;
+    device_response.protocol_version = 1;
+    device_response.operation = AMOV_DEVICE_OPERATION_TRANSFER;
+    device_response.node_id = 127;
+    device_response.payload_length = 192;
+    device_response.status = AMOV_DEVICE_STATUS_OK;
+    for (unsigned n = 0; n < 192; ++n) {
+        device_request.payload[n] = (uint8_t)(0x80 + n);
+        device_response.payload[n] = (uint8_t)(0x20 + n);
+    }
     mavlink_message_t message;
     if (argc == 1) {
         mavlink_msg_amov_rid_identity_request_encode(255, 190, &message, &request);
@@ -68,6 +93,10 @@ int main(int argc, char **argv)
         mavlink_msg_amov_rid_identity_encode(42, 1, &message, &identity);
         if (send_message(&message)) return 1;
         mavlink_msg_amov_uom_status_encode(255, 190, &message, &status);
+        if (send_message(&message)) return 1;
+        mavlink_msg_amov_device_request_encode(255, 190, &message, &device_request);
+        if (send_message(&message)) return 1;
+        mavlink_msg_amov_device_response_encode(42, 1, &message, &device_response);
         return send_message(&message);
     }
     int count = 0, byte;
@@ -88,11 +117,19 @@ int main(int argc, char **argv)
             mavlink_amov_uom_status_t value;
             mavlink_msg_amov_uom_status_decode(&message, &value);
             if (memcmp(&value, &status, MAVLINK_MSG_ID_AMOV_UOM_STATUS_LEN)) return 4;
+        } else if (count == 3 && message.msgid == MAVLINK_MSG_ID_AMOV_DEVICE_REQUEST) {
+            mavlink_amov_device_request_t value;
+            mavlink_msg_amov_device_request_decode(&message, &value);
+            if (memcmp(&value, &device_request, MAVLINK_MSG_ID_AMOV_DEVICE_REQUEST_LEN)) return 7;
+        } else if (count == 4 && message.msgid == MAVLINK_MSG_ID_AMOV_DEVICE_RESPONSE) {
+            mavlink_amov_device_response_t value;
+            mavlink_msg_amov_device_response_decode(&message, &value);
+            if (memcmp(&value, &device_response, MAVLINK_MSG_ID_AMOV_DEVICE_RESPONSE_LEN)) return 8;
         } else return 5;
         ++count;
     }
     if (argc == 3) { printf("%d\n", count); return 0; }
-    return count == 3 ? 0 : 6;
+    return count == 5 ? 0 : 6;
 }
 """
 
@@ -170,7 +207,7 @@ class ProtocolTest(unittest.TestCase):
         wire[12] ^= 0x40
         for decoder in self.executables:
             count = subprocess.check_output([str(decoder), "decode", "count"], input=wire)
-            self.assertEqual(count.strip(), b"2")
+            self.assertEqual(count.strip(), b"4")
 
     def test_wire_contract(self):
         for label, dialect in (("px4", "common"), ("qgc", "all")):
@@ -178,6 +215,8 @@ class ProtocolTest(unittest.TestCase):
                 ("AMOV_RID_IDENTITY_REQUEST", 16, 26),
                 ("AMOV_RID_IDENTITY", 224, 250),
                 ("AMOV_UOM_STATUS", 72, 206),
+                ("AMOV_DEVICE_REQUEST", 210, 199),
+                ("AMOV_DEVICE_RESPONSE", 211, 62),
             ):
                 header = (
                     self.build / label / dialect / ("mavlink_msg_" + name.lower() + ".h")
@@ -191,8 +230,6 @@ class ProtocolTest(unittest.TestCase):
                 "amov.xml",
                 "generate.py",
                 "test_protocol.py",
-                "README.md",
-                "INTEGRATION.md",
             ):
                 self.assertEqual(
                     (HERE / name).read_bytes(), (mirror / name).read_bytes(), str(mirror / name)

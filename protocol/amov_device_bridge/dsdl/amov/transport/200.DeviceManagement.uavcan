@@ -1,0 +1,5 @@
+# Opaque project device-management payload. Only QGC and the target device interpret it.
+# The flight controller validates transport routing and bounds only.
+uint8[<=192] payload
+---
+uint8[<=192] payload

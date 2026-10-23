@@ -108,6 +108,9 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_time_sync_master(_node),
 	_time_sync_slave(_node),
 	_node_status_monitor(_node),
+#if defined(CONFIG_UAVCAN_DEVICE_BRIDGE)
+	_device_bridge(_node, _node_status_monitor),
+#endif
 	_node_info_retriever(_node),
 	_node_info_publisher(_node, _node_info_retriever),
 	_master_timer(_node),
@@ -796,6 +799,10 @@ UavcanNode::Run()
 #endif
 
 	_node.spinOnce(); // expected to be non-blocking
+
+#if defined(CONFIG_UAVCAN_DEVICE_BRIDGE)
+	_device_bridge.update();
+#endif
 
 	apply_can_failure_injection();
 

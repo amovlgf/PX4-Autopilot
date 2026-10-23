@@ -80,6 +80,7 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_status.h>
 
+#include "MavlinkDeviceBridge.hpp"
 #include "mavlink_command_sender.h"
 #include "mavlink_events.h"
 #include "mavlink_messages.h"
@@ -326,6 +327,7 @@ public:
 	void			handle_message(const mavlink_message_t *msg);
 
 	int			get_instance_id() const { return _instance_id; }
+	void handle_device_request(const mavlink_message_t &message) { _device_bridge.handle(message); }
 
 	/**
 	 * Enable / disable hardware flow control.
@@ -541,6 +543,7 @@ public:
 
 private:
 	MavlinkReceiver 	_receiver;
+	MavlinkDeviceBridge _device_bridge;
 
 	MavlinkSignControl	_sign_control{};
 
