@@ -7,6 +7,7 @@ uint32 rid_boot_id
 uint32 pending_revision
 uint8 target_system
 uint8 target_component
+uint8 protocol_version
 uint8 result
 uint8 activation_state
 uint8 rid_node_id

@@ -6,6 +6,11 @@ uint32 identity_revision
 uint32 rid_boot_id
 uint32 last_ack_age_ms
 uint16 error_code
+uint32 last_sample_age_ms
+uint16 local_error
+uint8 protocol_version
+uint8 local_ready
+uint8 provider_state
 uint8 source_system
 uint8 source_component
 uint8 environment

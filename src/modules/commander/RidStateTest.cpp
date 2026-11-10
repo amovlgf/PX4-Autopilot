@@ -39,6 +39,7 @@ void readyPair(rid_identity_s &id, rid_uom_status_s &status)
 	memcpy(status.identity_hash, id.identity_hash, sizeof(status.identity_hash));
 	status.environment = rid_uom_status_s::ENVIRONMENT_OFFICIAL;
 	status.state = rid_uom_status_s::STATE_READY;
+	status.protocol_version = 1;
 	status.flags = 15;
 }
 }
@@ -142,6 +143,7 @@ TEST(RidState, ProductionRejectsMockAndTestBuildCanAcceptIt)
 	EXPECT_TRUE(rid::uomReady(id, status, 10000000, true));
 	status.flags = 7;
 	EXPECT_FALSE(rid::uomReady(id, status, 10000000, true));
+	status.protocol_version = 1;
 	status.flags = 15; status.state = rid_uom_status_s::STATE_FAILED;
 	EXPECT_FALSE(rid::uomReady(id, status, 10000000, true));
 	status.state = rid_uom_status_s::STATE_READY; status.error_code = 5;
@@ -232,4 +234,78 @@ TEST(RidState, SystemRepeatPacketsCannotHideFrozenUtcOrLostReception)
 	EXPECT_FALSE(rid::systemFresh(system, system.timestamp - 1));
 	system.timestamp_utc = 0;
 	EXPECT_FALSE(rid::systemFresh(system, system.timestamp));
+}
+
+TEST(RidState, VersionTwoLocalReadinessDoesNotRequirePlatformAck)
+{
+	rid_identity_s id{}; rid_uom_status_s status{};
+	readyPair(id, status);
+	status.protocol_version = 2;
+	status.flags = 7;
+	status.local_ready = 1;
+	status.last_ack_age_ms = UINT32_MAX;
+	status.error_code = 5;
+	status.state = rid_uom_status_s::STATE_FAILED;
+	EXPECT_TRUE(rid::uomReady(id, status, 10000000, false));
+	EXPECT_FALSE(rid::reportingHealthy(id, status, 10000000, false));
+	status.local_ready = 0;
+	status.last_ack_age_ms = 0;
+	status.provider_state = 2;
+	status.error_code = 0;
+	EXPECT_FALSE(rid::uomReady(id, status, 10000000, false));
+	status.local_ready = 1;
+	status.local_error = 8;
+	EXPECT_FALSE(rid::uomReady(id, status, 10000000, false));
+	status.local_error = 0;
+	status.last_sample_age_ms = 2500;
+	EXPECT_TRUE(rid::uomReady(id, status, 10500000, false));
+	EXPECT_FALSE(rid::uomReady(id, status, 10501000, false));
+	status.last_sample_age_ms = UINT32_MAX;
+	EXPECT_FALSE(rid::uomReady(id, status, 10000000, false));
+	status.last_sample_age_ms = 0;
+	status.protocol_version = 3;
+	EXPECT_FALSE(rid::uomReady(id, status, 10000000, false));
+}
+
+TEST(RidState, NegotiatedVersionIsBoundToConnectionSession)
+{
+	rid::Session session;
+	EXPECT_FALSE(session.claim(1, 255, 190, 10000000, false, 3));
+	ASSERT_TRUE(session.claim(1, 255, 190, 10000000, false, 2));
+	EXPECT_FALSE(session.claim(1, 255, 190, 10000001, false, 1));
+	EXPECT_FALSE(session.accept(1, 255, 190, 1, 10000001, 1));
+	EXPECT_TRUE(session.accept(1, 255, 190, 1, 10000001, 2));
+	EXPECT_FALSE(session.accept(1, 255, 190, 1, 10000002, 2));
+	EXPECT_FALSE(session.claim(2, 255, 190, 11000000, true, 1));
+	EXPECT_TRUE(session.claim(2, 255, 190, 14000002, true, 1));
+	EXPECT_FALSE(session.accept(1, 255, 190, 2, 14000003, 2));
+	EXPECT_TRUE(session.accept(2, 255, 190, 1, 14000003, 1));
+}
+
+TEST(RidState, PlatformWarningDoesNotInventAnAckDuringV2Startup)
+{
+	rid_identity_s id{}; rid_uom_status_s status{};
+	readyPair(id, status);
+	status.protocol_version = 2;
+	status.flags = 7;
+	status.local_ready = 1;
+	status.last_ack_age_ms = UINT32_MAX;
+
+	for (const uint8_t provider_state : {0, 1}) {
+		status.provider_state = provider_state;
+		EXPECT_TRUE(rid::uomReady(id, status, 10000000, false));
+		EXPECT_FALSE(rid::reportingHealthy(id, status, 10000000, false));
+		EXPECT_FALSE(rid::reportingWarning(id, status, 10000000, false));
+	}
+
+	status.provider_state = 3;
+	EXPECT_TRUE(rid::reportingWarning(id, status, 10000000, false));
+	status.provider_state = 2;
+	status.last_ack_age_ms = 4500;
+	EXPECT_FALSE(rid::reportingWarning(id, status, 10500000, false));
+	EXPECT_TRUE(rid::reportingWarning(id, status, 10501000, false));
+	status.protocol_version = 1;
+	status.flags = 15;
+	status.provider_state = 1;
+	EXPECT_TRUE(rid::reportingWarning(id, status, 10501000, false));
 }

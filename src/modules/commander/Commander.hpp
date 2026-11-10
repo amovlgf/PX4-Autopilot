@@ -52,6 +52,7 @@
 
 // publications
 #include <uORB/Publication.hpp>
+#include <lib/remote_id/RidFlightContext.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_test.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -331,6 +332,10 @@ private:
 
 	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
+
+	rid::FlightContext _rid_flight_context;
+	uORB::Publication<rid_flight_status_s> _rid_flight_status_pub{ORB_ID(rid_flight_status)};
+	uORB::Subscription _rid_gps_sub{ORB_ID(vehicle_gps_position)};
 
 	// Publications
 	uORB::Publication<actuator_armed_s>			_actuator_armed_pub{ORB_ID(actuator_armed)};

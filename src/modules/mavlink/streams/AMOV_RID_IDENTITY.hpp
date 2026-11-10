@@ -32,7 +32,8 @@ private:
 		out.pending_revision = id.pending_revision;
 		out.target_system = id.target_system;
 		out.target_component = id.target_component;
-		out.protocol_version = 1;
+		out.protocol_version = id.protocol_version;
+		out.capabilities = AMOV_UOM_CAPABILITY_LOCAL_READINESS_V2 | AMOV_UOM_CAPABILITY_FLIGHT_CONTEXT;
 		out.result = id.result;
 		out.activation_state = id.activation_state;
 		out.rid_node_id = id.rid_node_id;

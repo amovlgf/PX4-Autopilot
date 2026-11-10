@@ -164,6 +164,7 @@ set(msg_files
 	OpenDroneIdSystem.msg
 	RidIdentityRequest.msg
 	RidIdentity.msg
+	RidFlightStatus.msg
 	RidUomStatus.msg
 	OrbitStatus.msg
 	OrbTest.msg

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Cross-compile both dialects and exchange real MAVLink frames between them."""
 
 import argparse
@@ -30,6 +29,7 @@ static void expected(mavlink_amov_rid_identity_request_t *r,
     i->rid_boot_id = 0xffeeddcc; i->pending_revision = 0xaabbccde;
     i->target_system = 255; i->target_component = 190; i->protocol_version = 1;
     i->result = AMOV_RID_IDENTITY_RESULT_OK; i->activation_state = AMOV_RID_ACTIVATION_STATE_ACTIVE;
+    i->capabilities = AMOV_UOM_CAPABILITY_LOCAL_READINESS_V2 | AMOV_UOM_CAPABILITY_FLIGHT_CONTEXT;
     i->rid_node_id = 125; i->aircraft_class = 4; i->activation_error = 7;
     memcpy(i->rid_uid, "AABBCCDDEEFF", sizeof(i->rid_uid));
     memcpy(i->uas_id, "AMOV0123456789012345", sizeof(i->uas_id));
@@ -45,6 +45,8 @@ static void expected(mavlink_amov_rid_identity_request_t *r,
     s->flags = AMOV_UOM_FLAGS_IDENTITY_VALID | AMOV_UOM_FLAGS_ACTIVATION_VALID |
                AMOV_UOM_FLAGS_TELEMETRY_VALID | AMOV_UOM_FLAGS_AUTHENTICATED;
     memcpy(s->identity_hash, i->identity_hash, sizeof(s->identity_hash));
+    s->local_ready = 1; s->provider_state = AMOV_UOM_PROVIDER_STATE_PENDING;
+    s->local_error = AMOV_UOM_ERROR_NONE; s->last_sample_age_ms = UINT32_MAX;
 }
 
 static int send_message(mavlink_message_t *message)
@@ -56,11 +58,15 @@ static int send_message(mavlink_message_t *message)
 
 int main(int argc, char **argv)
 {
-    (void)argv;
+
     mavlink_amov_rid_identity_request_t request;
     mavlink_amov_rid_identity_t identity;
     mavlink_amov_uom_status_t status;
     expected(&request, &identity, &status);
+    if (argc > 1 && strstr(argv[1], "legacy")) {
+        identity.capabilities = 0;
+        status.local_ready = status.provider_state = status.local_error = status.last_sample_age_ms = 0;
+    }
     mavlink_amov_device_request_t device_request;
     mavlink_amov_device_response_t device_response;
     memset(&device_request, 0, sizeof(device_request));
@@ -86,8 +92,15 @@ int main(int argc, char **argv)
         device_request.payload[n] = (uint8_t)(0x80 + n);
         device_response.payload[n] = (uint8_t)(0x20 + n);
     }
+    mavlink_amov_uom_flight_status_t flight;
+    memset(&flight, 0, sizeof(flight));
+    flight.boot_id = identity.boot_id; flight.session_id = request.session_id;
+    flight.takeoff_utc_us = UINT64_C(1793764800000000); flight.time_boot_us = UINT64_C(12345678901);
+    flight.flight_sequence = 42; flight.target_system = 255; flight.target_component = 190;
+    flight.protocol_version = 2;
+    flight.flags = AMOV_UOM_FLIGHT_FLAGS_ACTIVE | AMOV_UOM_FLIGHT_FLAGS_AIRBORNE | AMOV_UOM_FLIGHT_FLAGS_TAKEOFF_UTC_VALID;
     mavlink_message_t message;
-    if (argc == 1) {
+    if (argc == 1 || strcmp(argv[1], "legacy") == 0) {
         mavlink_msg_amov_rid_identity_request_encode(255, 190, &message, &request);
         if (send_message(&message)) return 1;
         mavlink_msg_amov_rid_identity_encode(42, 1, &message, &identity);
@@ -97,6 +110,8 @@ int main(int argc, char **argv)
         mavlink_msg_amov_device_request_encode(255, 190, &message, &device_request);
         if (send_message(&message)) return 1;
         mavlink_msg_amov_device_response_encode(42, 1, &message, &device_response);
+        if (send_message(&message)) return 1;
+        mavlink_msg_amov_uom_flight_status_encode(42, 1, &message, &flight);
         return send_message(&message);
     }
     int count = 0, byte;
@@ -125,11 +140,15 @@ int main(int argc, char **argv)
             mavlink_amov_device_response_t value;
             mavlink_msg_amov_device_response_decode(&message, &value);
             if (memcmp(&value, &device_response, MAVLINK_MSG_ID_AMOV_DEVICE_RESPONSE_LEN)) return 8;
+        } else if (count == 5 && message.msgid == MAVLINK_MSG_ID_AMOV_UOM_FLIGHT_STATUS) {
+            mavlink_amov_uom_flight_status_t value;
+            mavlink_msg_amov_uom_flight_status_decode(&message, &value);
+            if (memcmp(&value, &flight, MAVLINK_MSG_ID_AMOV_UOM_FLIGHT_STATUS_LEN)) return 9;
         } else return 5;
         ++count;
     }
     if (argc == 3) { printf("%d\n", count); return 0; }
-    return count == 5 ? 0 : 6;
+    return count == 6 ? 0 : 6;
 }
 """
 
@@ -202,21 +221,35 @@ class ProtocolTest(unittest.TestCase):
                 subprocess.run([str(decoder), "decode"], input=wire, check=True)
         self.assertEqual(frames[0], frames[1])
 
+    def test_legacy_messages_decode_without_extensions(self):
+        for encoder in self.executables:
+            wire = subprocess.check_output([str(encoder), "legacy"])
+            offset = 0
+            lengths = []
+            while offset < len(wire):
+                length = wire[offset + 1]
+                lengths.append(length)
+                offset += length + 12
+            self.assertEqual(lengths[1:3], [224, 72])
+            for decoder in self.executables:
+                subprocess.run([str(decoder), "decode-legacy"], input=wire, check=True)
+
     def test_corrupt_frame_rejected(self):
         wire = bytearray(subprocess.check_output([str(self.executables[0])]))
         wire[12] ^= 0x40
         for decoder in self.executables:
             count = subprocess.check_output([str(decoder), "decode", "count"], input=wire)
-            self.assertEqual(count.strip(), b"4")
+            self.assertEqual(count.strip(), b"5")
 
     def test_wire_contract(self):
         for label, dialect in (("px4", "common"), ("qgc", "all")):
             for name, length, crc in (
                 ("AMOV_RID_IDENTITY_REQUEST", 16, 26),
-                ("AMOV_RID_IDENTITY", 224, 250),
-                ("AMOV_UOM_STATUS", 72, 206),
+                ("AMOV_RID_IDENTITY", 228, 250),
+                ("AMOV_UOM_STATUS", 80, 206),
                 ("AMOV_DEVICE_REQUEST", 210, 199),
                 ("AMOV_DEVICE_RESPONSE", 211, 62),
+                ("AMOV_UOM_FLIGHT_STATUS", 40, 5),
             ):
                 header = (
                     self.build / label / dialect / ("mavlink_msg_" + name.lower() + ".h")
@@ -224,9 +257,18 @@ class ProtocolTest(unittest.TestCase):
                 self.assertIn("#define MAVLINK_MSG_ID_" + name + "_LEN " + str(length), header)
                 self.assertIn("#define MAVLINK_MSG_ID_" + name + "_CRC " + str(crc), header)
 
+    def test_legacy_minimum_lengths_unchanged(self):
+        for label, dialect in (("px4", "common"), ("qgc", "all")):
+            for name, minimum in (("AMOV_RID_IDENTITY", 224), ("AMOV_UOM_STATUS", 72)):
+                header = (
+                    self.build / label / dialect / ("mavlink_msg_" + name.lower() + ".h")
+                ).read_text()
+                self.assertIn("#define MAVLINK_MSG_ID_" + name + "_MIN_LEN " + str(minimum), header)
+
     def test_repository_mirrors(self):
         for mirror in SETTINGS.mirror:
             for name in (
+                "README.md",
                 "amov.xml",
                 "generate.py",
                 "test_protocol.py",

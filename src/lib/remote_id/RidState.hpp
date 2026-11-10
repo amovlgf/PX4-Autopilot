@@ -54,15 +54,52 @@ inline bool matches(const rid_identity_s &id, const rid_uom_status_s &status)
 	       && memcmp(id.identity_hash, status.identity_hash, sizeof(id.identity_hash)) == 0;
 }
 
+inline bool ackFresh(const rid_uom_status_s &status, uint64_t now)
+{
+	return recent(status.timestamp, now, HEARTBEAT_TIMEOUT_US) && status.last_ack_age_ms <= ACK_TIMEOUT_MS
+	       && (now - status.timestamp) / 1000 <= ACK_TIMEOUT_MS - status.last_ack_age_ms;
+}
+
 inline bool uomReady(const rid_identity_s &id, const rid_uom_status_s &status, uint64_t now, bool allow_mock)
 {
-	return identityReady(id, now) && matches(id, status)
-	       && recent(status.timestamp, now, HEARTBEAT_TIMEOUT_US)
-	       && (status.environment == rid_uom_status_s::ENVIRONMENT_OFFICIAL
-		   || (allow_mock && status.environment == rid_uom_status_s::ENVIRONMENT_MOCK))
+	if (!identityReady(id, now) || !matches(id, status)
+	    || !recent(status.timestamp, now, HEARTBEAT_TIMEOUT_US)
+	    || !(status.environment == rid_uom_status_s::ENVIRONMENT_OFFICIAL
+		 || (allow_mock && status.environment == rid_uom_status_s::ENVIRONMENT_MOCK))) { return false; }
+
+	if (status.protocol_version == 2) {
+		static constexpr uint32_t SAMPLE_TIMEOUT_MS = HEARTBEAT_TIMEOUT_US / 1000;
+		static constexpr uint8_t LOCAL_FLAGS = 1 | 2 | 4;
+		return status.local_ready == 1 && status.local_error == 0 && (status.flags & LOCAL_FLAGS) == LOCAL_FLAGS
+		       && status.last_sample_age_ms <= SAMPLE_TIMEOUT_MS
+		       && (now - status.timestamp) / 1000 <= SAMPLE_TIMEOUT_MS - status.last_sample_age_ms;
+	}
+
+	return status.protocol_version == 1
 	       && (status.state == rid_uom_status_s::STATE_READY || status.state == rid_uom_status_s::STATE_REPORTING)
-	       && status.flags == 15 && status.error_code == 0 && status.last_ack_age_ms <= ACK_TIMEOUT_MS
-	       && (now - status.timestamp) / 1000 <= ACK_TIMEOUT_MS - status.last_ack_age_ms;
+	       && status.flags == 15 && status.error_code == 0 && ackFresh(status, now);
+}
+
+inline bool reportingHealthy(const rid_identity_s &id, const rid_uom_status_s &status, uint64_t now, bool allow_mock)
+{
+	static constexpr uint8_t PROVIDER_ACCEPTED = 2;
+	return uomReady(id, status, now, allow_mock)
+	       && (status.protocol_version == 1 || (status.provider_state == PROVIDER_ACCEPTED
+			       && status.error_code == 0 && ackFresh(status, now)));
+}
+
+inline bool reportingWarning(const rid_identity_s &id, const rid_uom_status_s &status, uint64_t now, bool allow_mock)
+{
+	static constexpr uint8_t PROVIDER_UNAVAILABLE = 0;
+	static constexpr uint8_t PROVIDER_PENDING = 1;
+
+	// The caller checks local readiness independently. Waiting for the first
+	// actual transmission or its initial confirmation is not a platform failure,
+	// and must never be represented as a successful ACK by reportingHealthy().
+	if (status.protocol_version == 2 && (status.provider_state == PROVIDER_UNAVAILABLE
+					     || status.provider_state == PROVIDER_PENDING)) { return false; }
+
+	return !reportingHealthy(id, status, now, allow_mock);
 }
 
 // One reporting owner per vehicle; sequence and lease are protected by the caller's mutex.
@@ -73,21 +110,22 @@ public:
 	{
 		return _session != 0 && _session == session && _system == system && _component == component;
 	}
-	bool claim(uint64_t session, uint8_t system, uint8_t component, uint64_t now, bool identity_valid)
+	bool claim(uint64_t session, uint8_t system, uint8_t component, uint64_t now, bool identity_valid, uint8_t protocol_version = 1)
 	{
-		if (session == 0) { return false; }
+		if (session == 0 || (protocol_version != 1 && protocol_version != 2)) { return false; }
 
-		if (isOwner(session, system, component)) { return true; }
+		if (isOwner(session, system, component)) { return _protocol_version == protocol_version; }
 
 		if (identity_valid && recent(_last_status, now, HEARTBEAT_TIMEOUT_US)) { return false; }
 
-		_session = session; _system = system; _component = component;
+		_session = session; _system = system; _component = component; _protocol_version = protocol_version;
 		_last_status = 0; _sequence = 0; _have_sequence = false;
 		return true;
 	}
-	bool accept(uint64_t session, uint8_t system, uint8_t component, uint32_t sequence, uint64_t now)
+	bool accept(uint64_t session, uint8_t system, uint8_t component, uint32_t sequence, uint64_t now, uint8_t protocol_version = 1)
 	{
-		if (!isOwner(session, system, component) || (_have_sequence && !sequenceNewer(sequence, _sequence))) { return false; }
+		if (_protocol_version != protocol_version || !isOwner(session, system, component) || (_have_sequence
+				&& !sequenceNewer(sequence, _sequence))) { return false; }
 
 		_last_status = now; _sequence = sequence; _have_sequence = true;
 		return true;
@@ -103,6 +141,7 @@ private:
 	uint32_t _sequence{0};
 	uint8_t _system{0};
 	uint8_t _component{0};
+	uint8_t _protocol_version{0};
 	bool _have_sequence{false};
 };
 

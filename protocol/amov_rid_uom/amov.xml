@@ -20,6 +20,23 @@
       <entry value="1" name="AMOV_RID_ACTIVATION_STATE_ACTIVE"/>
       <entry value="2" name="AMOV_RID_ACTIVATION_STATE_INVALID"/>
     </enum>
+    <enum name="AMOV_UOM_CAPABILITY" bitmask="true">
+      <entry value="1" name="AMOV_UOM_CAPABILITY_LOCAL_READINESS_V2"/>
+      <entry value="2" name="AMOV_UOM_CAPABILITY_FLIGHT_CONTEXT"/>
+    </enum>
+    <enum name="AMOV_UOM_PROVIDER_STATE">
+      <entry value="0" name="AMOV_UOM_PROVIDER_STATE_UNAVAILABLE"/>
+      <entry value="1" name="AMOV_UOM_PROVIDER_STATE_PENDING"/>
+      <entry value="2" name="AMOV_UOM_PROVIDER_STATE_ACCEPTED"/>
+      <entry value="3" name="AMOV_UOM_PROVIDER_STATE_FAILED"/>
+    </enum>
+    <enum name="AMOV_UOM_FLIGHT_FLAGS" bitmask="true">
+      <entry value="1" name="AMOV_UOM_FLIGHT_FLAGS_ACTIVE"/>
+      <entry value="2" name="AMOV_UOM_FLIGHT_FLAGS_AIRBORNE"/>
+      <entry value="4" name="AMOV_UOM_FLIGHT_FLAGS_TAKEOFF_UTC_VALID"/>
+      <entry value="8" name="AMOV_UOM_FLIGHT_FLAGS_BROADCAST_READY"><description>Fresh self-check from the bound activated RID. Independent of UOM readiness.</description></entry>
+      <entry value="16" name="AMOV_UOM_FLIGHT_FLAGS_SIMULATION"><description>Autopilot built for SITL. Official reporting is forbidden. Absence does not certify a manufacturer-authorized aircraft.</description></entry>
+    </enum>
     <enum name="AMOV_UOM_ENVIRONMENT">
       <entry value="0" name="AMOV_UOM_ENVIRONMENT_UNCONFIGURED"/>
       <entry value="1" name="AMOV_UOM_ENVIRONMENT_MOCK"/>
@@ -76,7 +93,7 @@
       <field type="uint32_t" name="request_id">Nonzero request correlation identifier.</field>
       <field type="uint8_t" name="target_system">Target aircraft system.</field>
       <field type="uint8_t" name="target_component">Target autopilot component.</field>
-      <field type="uint8_t" name="protocol_version">Project protocol version, currently 1.</field>
+      <field type="uint8_t" name="protocol_version">Project protocol version, 1 or 2. Version 2 requires a successful version 2 identity query.</field>
       <field type="uint8_t" name="flags">Bit 0 forces refresh. All other bits reserved and zero.</field>
     </message>
     <message id="61001" name="AMOV_RID_IDENTITY">
@@ -89,7 +106,7 @@
       <field type="uint32_t" name="pending_revision">Pending authorization revision, zero if none.</field>
       <field type="uint8_t" name="target_system">Requesting ground station system.</field>
       <field type="uint8_t" name="target_component">Requesting ground station component.</field>
-      <field type="uint8_t" name="protocol_version">Project protocol version, currently 1.</field>
+      <field type="uint8_t" name="protocol_version">Project protocol version, 1 or 2. Version 2 requires a successful version 2 identity query.</field>
       <field type="uint8_t" name="result" enum="AMOV_RID_IDENTITY_RESULT">Query result.</field>
       <field type="uint8_t" name="activation_state" enum="AMOV_RID_ACTIVATION_STATE">Effective activation state.</field>
       <field type="uint8_t" name="rid_node_id">Selected DroneCAN node, 1 to 127.</field>
@@ -101,6 +118,8 @@
       <field type="char[8]" name="uin">Optional eight-character broadcast registration suffix, never a complete registration identifier.</field>
       <field type="uint8_t[32]" name="identity_hash">BLAKE2b-256 digest defined in the project identity contract.</field>
       <field type="char[48]" name="error">Diagnostic query failure text; no credentials or authorization payload.</field>
+      <extensions/>
+      <field type="uint32_t" name="capabilities" enum="AMOV_UOM_CAPABILITY">Supported capabilities. Version 2 use requires a matching version 2 request and response in this session.</field>
     </message>
     <message id="61002" name="AMOV_UOM_STATUS">
       <description>Per-aircraft network reporting status. Transmit at 1 Hz and on changes. A fresh heartbeat alone cannot establish a fresh platform acknowledgement.</description>
@@ -113,11 +132,16 @@
       <field type="uint16_t" name="error_code" enum="AMOV_UOM_ERROR">Structured reporting error.</field>
       <field type="uint8_t" name="target_system">Target aircraft system.</field>
       <field type="uint8_t" name="target_component">Target autopilot component.</field>
-      <field type="uint8_t" name="protocol_version">Project protocol version, currently 1.</field>
+      <field type="uint8_t" name="protocol_version">Project protocol version, 1 or 2. Version 2 requires a successful version 2 identity query.</field>
       <field type="uint8_t" name="environment" enum="AMOV_UOM_ENVIRONMENT">Provider environment. Production firmware rejects MOCK.</field>
       <field type="uint8_t" name="state" enum="AMOV_UOM_STATE">Current reporting state.</field>
       <field type="uint8_t" name="flags" enum="AMOV_UOM_FLAGS">Validated reporting prerequisites.</field>
       <field type="uint8_t[32]" name="identity_hash">Identity digest from the validated RID snapshot.</field>
+      <extensions/>
+      <field type="uint8_t" name="local_ready">Version 2 only: local identity, activation, telemetry, credentials, storage and reporting scheduler are ready. Independent of platform acknowledgement.</field>
+      <field type="uint8_t" name="provider_state" enum="AMOV_UOM_PROVIDER_STATE">Version 2 platform status. Does not establish local readiness.</field>
+      <field type="uint16_t" name="local_error" enum="AMOV_UOM_ERROR">Version 2 local preparation failure. Zero is required for local readiness.</field>
+      <field type="uint32_t" name="last_sample_age_ms" units="ms">Version 2 age of latest valid telemetry sample. UINT32_MAX if none. Ground station heartbeat cannot refresh an old sample.</field>
     </message>
     <message id="61003" name="AMOV_DEVICE_REQUEST">
       <description>Bounded transparent device request. LIST_NODES has an empty payload; TRANSFER carries an opaque device service request. MAVLink 2 only.</description>
@@ -143,6 +167,18 @@
       <field type="uint8_t" name="payload_length">Number of valid payload bytes, 0 to 192.</field>
       <field type="uint8_t" name="status" enum="AMOV_DEVICE_STATUS">Transport result. OK does not imply a successful device operation.</field>
       <field type="uint8_t[192]" name="payload">Opaque device response, or node list. Unused bytes zero.</field>
+    </message>
+    <message id="61005" name="AMOV_UOM_FLIGHT_STATUS">
+      <description>Flight context from the autopilot to the negotiated version 2 owner, at 5 Hz. Flight sequence and takeoff UTC survive GCS reconnects. Confirmed landing ends a flight; the next actual takeoff starts a new sequence even without disarming. Unknown takeoff UTC remains unknown for the entire flight.</description>
+      <field type="uint64_t" name="boot_id">Autopilot boot identifier from the identity response.</field>
+      <field type="uint64_t" name="session_id">Negotiated ground station session.</field>
+      <field type="uint64_t" name="takeoff_utc_us" units="us">Actual takeoff UTC locked at takeoff, zero when unavailable. Never reconstructed after takeoff.</field>
+      <field type="uint64_t" name="time_boot_us" units="us">Monotonic autopilot transmit time. Must advance within a boot and session.</field>
+      <field type="uint32_t" name="flight_sequence">Boot-local flight sequence, incremented only at an armed landed-to-airborne transition, zero before first takeoff.</field>
+      <field type="uint8_t" name="target_system">Owning ground station system.</field>
+      <field type="uint8_t" name="target_component">Owning ground station component.</field>
+      <field type="uint8_t" name="protocol_version">Negotiated version, always 2.</field>
+      <field type="uint8_t" name="flags" enum="AMOV_UOM_FLIGHT_FLAGS">Active flight, airborne and known takeoff UTC. Sequence and UTC remain available after confirmed landing.</field>
     </message>
   </messages>
 </mavlink>

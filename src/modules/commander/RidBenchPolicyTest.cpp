@@ -42,6 +42,7 @@ TEST(RidBenchPolicy, CompiledBenchCheckAcceptsMockOnlyWithCompleteReadiness)
 	uom.source_component = identity.target_component;
 	uom.environment = rid_uom_status_s::ENVIRONMENT_MOCK;
 	uom.state = rid_uom_status_s::STATE_READY;
+	uom.protocol_version = 1;
 	uom.flags = 15;
 	open_drone_id_arm_status_s arm{};
 	arm.timestamp = now;

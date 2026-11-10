@@ -9,3 +9,5 @@ void handleRidIdentityRequest(Mavlink &mavlink, const mavlink_message_t &message
 void handleRidUomStatus(const mavlink_message_t &message);
 
 bool ridSystemSourceAllowed(uint8_t system, uint8_t component);
+
+bool fillRidFlightStatus(mavlink_amov_uom_flight_status_t &out);

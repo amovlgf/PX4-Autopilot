@@ -74,6 +74,7 @@ void RidIdentityClient::publish(uint8_t result, const char *text, bool invalidat
 	out.request_id = invalidate ? 0 : _request.request_id;
 	out.target_system = _request.target_system;
 	out.target_component = _request.target_component;
+	out.protocol_version = _request.protocol_version;
 	out.rid_node_id = _node_id;
 	out.result = result;
 	strncpy(out.error, text, sizeof(out.error) - 1);

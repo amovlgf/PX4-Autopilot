@@ -97,6 +97,11 @@ px4_add_functional_gtest(SRC ModeManagementTest.cpp LINKLIBS modules__commander)
 px4_add_functional_gtest(SRC CommanderRemoteIDTest.cpp LINKLIBS modules__commander)
 
 px4_add_unit_gtest(SRC RidStateTest.cpp)
+px4_add_unit_gtest(SRC RidFlightContextTest.cpp)
+if(BUILD_TESTING)
+	add_dependencies(unit-RidState uorb_headers)
+	add_dependencies(unit-RidFlightContext uorb_headers)
+endif()
 
 # Compile the real checker with the bench flag in a separate executable. Production
 # CommanderRemoteIDTest links the normal checker with mock acceptance disabled.

@@ -136,6 +136,7 @@ public:
 		_identity.target_component = _uom.source_component = 190;
 		_uom.environment = rid_uom_status_s::ENVIRONMENT_OFFICIAL;
 		_uom.state = rid_uom_status_s::STATE_READY;
+		_uom.protocol_version = 1;
 		_uom.flags = 15;
 		publishProduct();
 	}
@@ -480,4 +481,88 @@ TEST_F(CommanderRemoteIDTest, ProductUomFailureInFlightDoesNotChangeAction)
 	bool override_request = false;
 	EXPECT_EQ(failsafe.update(hrt_absolute_time(), state, false, override_request, _failsafe_flags), state.user_intended_mode);
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+}
+
+TEST_F(CommanderRemoteIDTest, V2LocalPreparationAllowsGroundArmingWithoutPlatformAck)
+{
+	enableProduct();
+	_uom.protocol_version = 2;
+	_uom.flags = 7;
+	_uom.local_ready = 1;
+	_uom.last_ack_age_ms = UINT32_MAX;
+	_uom.error_code = 5;
+	_uom.state = rid_uom_status_s::STATE_FAILED;
+	publishProduct();
+	checkProduct(true, false);
+	_uom.local_error = 8;
+	publishProduct();
+	checkProduct(false, true);
+}
+
+TEST_F(CommanderRemoteIDTest, V2PlatformAckCannotReplaceLocalPreparation)
+{
+	enableProduct();
+	_uom.protocol_version = 2;
+	_uom.provider_state = 2;
+	_uom.local_ready = 0;
+	publishProduct();
+	checkProduct(false, true);
+}
+
+TEST_F(CommanderRemoteIDTest, V2NetworkFailureInFlightOnlyWarns)
+{
+	enableProduct();
+	_uom.protocol_version = 2;
+	_uom.flags = 7;
+	_uom.local_ready = 1;
+	_uom.provider_state = 3;
+	_uom.last_ack_age_ms = UINT32_MAX;
+	publishProduct();
+	checkProduct(true, false);
+	EXPECT_EQ(arm(arm_disarm_reason_t::command_internal, false), TRANSITION_CHANGED);
+	checkProduct(true, true);
+	EXPECT_FALSE(_failsafe_flags.remote_id_unhealthy);
+	Failsafe failsafe{nullptr};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	bool override_request = false;
+	EXPECT_EQ(failsafe.update(hrt_absolute_time(), state, false, override_request, _failsafe_flags), state.user_intended_mode);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+}
+
+TEST_F(CommanderRemoteIDTest, V2ArmedGroundWaitsForActualSendingWithoutWarning)
+{
+	enableProduct();
+	_uom.protocol_version = 2;
+	_uom.flags = 7;
+	_uom.local_ready = 1;
+	_uom.last_ack_age_ms = UINT32_MAX;
+	EXPECT_EQ(arm(arm_disarm_reason_t::command_internal, false), TRANSITION_CHANGED);
+
+	for (const uint8_t provider_state : {0, 1}) {
+		_uom.provider_state = provider_state;
+		publishProduct();
+		checkProduct(true, false);
+	}
+
+	_uom.local_error = 8;
+	publishProduct();
+	checkProduct(true, true);
+}
+
+TEST_F(CommanderRemoteIDTest, V2ArmedAcceptedProviderRequiresFreshAck)
+{
+	enableProduct();
+	_uom.protocol_version = 2;
+	_uom.flags = 7;
+	_uom.local_ready = 1;
+	_uom.provider_state = 2;
+	EXPECT_EQ(arm(arm_disarm_reason_t::command_internal, false), TRANSITION_CHANGED);
+	publishProduct();
+	checkProduct(true, false);
+	_uom.last_ack_age_ms = 5001;
+	publishProduct();
+	checkProduct(true, true);
 }

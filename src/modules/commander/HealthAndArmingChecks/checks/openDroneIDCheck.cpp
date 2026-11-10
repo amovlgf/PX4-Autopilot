@@ -110,7 +110,9 @@ void OpenDroneIDChecks::checkProduct(const Context &context, Report &reporter)
 	static constexpr bool allow_mock = false;
 #endif
 	const bool uom_ready = rid::uomReady(identity, uom, now, allow_mock);
-	reporter.failsafeFlags().uom_unhealthy = !uom_ready;
+	const bool network_warning = rid::reportingWarning(identity, uom, now, allow_mock);
+	const bool healthy = uom_ready && (!context.isArmed() || !network_warning);
+	reporter.failsafeFlags().uom_unhealthy = !healthy;
 	const NavModes modes = context.isArmed() ? NavModes::None : NavModes::All;
 	const events::Log severity = context.isArmed() ? events::Log::Warning : events::Log::Error;
 
@@ -131,7 +133,7 @@ void OpenDroneIDChecks::checkProduct(const Context &context, Report &reporter)
 					    events::ID("check_rid_bound_health"), severity, "Bound RID health is missing or stale");
 	}
 
-	if (!uom_ready) {
+	if (!healthy) {
 		/* EVENT
 		 * @description
 		 * Product RID/UOM readiness is required before arming. UOM faults in flight only warn.
@@ -141,14 +143,14 @@ void OpenDroneIDChecks::checkProduct(const Context &context, Report &reporter)
 	}
 
 	// UOM is deliberately not part of remote_id_unhealthy or any mode-changing failsafe.
-	if (context.isArmed() && uom_ready != _last_uom_ready) {
-		if (uom_ready) {
-			events::send(events::ID("uom_reporting_restored"), events::Log::Info, "UOM reporting restored");
+	if (context.isArmed() && healthy != _last_uom_ready) {
+		if (healthy) {
+			events::send(events::ID("uom_reporting_restored"), events::Log::Info, "UOM reporting warning cleared");
 
 		} else {
 			events::send(events::ID("uom_reporting_lost"), events::Log::Warning, "UOM reporting unavailable; flight mode unchanged");
 		}
 	}
 
-	_last_uom_ready = uom_ready;
+	_last_uom_ready = healthy;
 }

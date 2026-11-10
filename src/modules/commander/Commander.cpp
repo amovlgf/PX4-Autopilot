@@ -2316,6 +2316,11 @@ void Commander::landDetectorUpdate()
 		const bool was_landed = _vehicle_land_detected.landed;
 		_vehicle_land_detected_sub.copy(&_vehicle_land_detected);
 
+		if (!was_landed && _vehicle_land_detected.landed) {
+			_rid_flight_context.land(hrt_absolute_time());
+			_rid_flight_status_pub.publish(_rid_flight_context.state());
+		}
+
 		// Only take actions if armed
 		if (isArmed()) {
 			if (!was_landed && _vehicle_land_detected.landed) {
@@ -2326,6 +2331,10 @@ void Commander::landDetectorUpdate()
 				mavlink_log_info(&_mavlink_log_pub, "Takeoff detected\t");
 				events::send(events::ID("commander_takeoff_detected"), events::Log::Info, "Takeoff detected");
 				_vehicle_status.takeoff_time = hrt_absolute_time();
+				sensor_gps_s gps{};
+				_rid_gps_sub.copy(&gps);
+				_rid_flight_context.takeoff(_vehicle_status.takeoff_time, gps);
+				_rid_flight_status_pub.publish(_rid_flight_context.state());
 				_have_taken_off_since_arming = true;
 				_home_position.setTakeoffTime(_vehicle_status.takeoff_time);
 			}
