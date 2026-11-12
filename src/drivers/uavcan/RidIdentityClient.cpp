@@ -84,13 +84,13 @@ void RidIdentityClient::publish(uint8_t result, const char *text, bool invalidat
 	if (invalidate) { _request = {}; }
 }
 
-void RidIdentityClient::start()
+void RidIdentityClient::start(hrt_abstime now)
 {
 	_reader.reset();
 	_need_info = true;
 	_active = true;
 	_inflight = false;
-	_cycle_started = hrt_absolute_time();
+	_cycle_started = now;
 
 	if (_attempts == 0) { _transaction_started = _cycle_started; }
 }
@@ -163,7 +163,7 @@ void RidIdentityClient::update()
 	if (!_active) {
 		if (now < _next_read) { return; }
 
-		start();
+		start(now);
 	}
 
 	if (now - _cycle_started > 6_s) { fail(rid_identity_s::RESULT_TIMEOUT, "RID snapshot deadline"); return; }

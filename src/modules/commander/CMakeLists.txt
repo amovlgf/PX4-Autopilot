@@ -109,3 +109,7 @@ px4_add_functional_gtest(SRC RidBenchPolicyTest.cpp
 	EXTRA_SRCS HealthAndArmingChecks/checks/openDroneIDCheck.cpp
 	COMPILE_FLAGS -DCONFIG_RID_UOM_TEST_MOCK=1
 	LINKLIBS health_and_arming_checks mode_util)
+
+if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    include(${PX4_SOURCE_DIR}/test/RidIdentityClient.cmake)
+endif()

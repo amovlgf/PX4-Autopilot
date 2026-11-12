@@ -32,7 +32,7 @@ private:
 	void infoResponse(const uavcan::ServiceCallResult<uavcan::protocol::GetNodeInfo> &result);
 	void fail(uint8_t result, const char *text);
 	void publish(uint8_t result, const char *text, bool invalidate = false);
-	void start();
+	void start(hrt_abstime now);
 	uavcan::ServiceClient<uavcan::protocol::param::GetSet, ParamCallback> _param_client;
 	uavcan::ServiceClient<uavcan::protocol::GetNodeInfo, InfoCallback> _info_client;
 	uavcan::Subscriber<uavcan::protocol::NodeStatus, StatusCallback> _status_sub;
