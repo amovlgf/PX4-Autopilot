@@ -646,6 +646,8 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	_param_opcode_client.setCallback(ExecuteOpcodeCallback(this, &UavcanNode::cb_opcode));
 	_param_restartnode_client.setCallback(RestartNodeCallback(this, &UavcanNode::cb_restart));
 
+	bool servers_ready = false;
+
 	if (uavcan_enable > 1) {
 		_servers = new UavcanServers(_node, _node_info_retriever);
 
@@ -654,12 +656,21 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 			if (rv < 0) {
 				PX4_ERR("UavcanServers init: %d", rv);
+
+			} else {
+				servers_ready = true;
 			}
 		}
 	}
 
 	// Start the Node
-	return _node.start();
+	ret = _node.start();
+
+	if (ret >= 0 && servers_ready) {
+		PX4_INFO("UAVCAN/DNA ready at %" PRIu64 " us", hrt_absolute_time());
+	}
+
+	return ret;
 }
 
 void
