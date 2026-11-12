@@ -18,3 +18,8 @@ param set-default BAT1_A_PER_V 36.367515152
 
 # Multicopter Position Control control and Land Detector
 param set-default MPC_LAND_CRWL 0.5
+
+# Remote ID management and flight readiness checks.
+param set-default UAVCAN_ENABLE 2
+param set-default COM_ARM_ODID 2
+param set-default COM_RID_UOM 1
