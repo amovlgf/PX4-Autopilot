@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  ****************************************************************************/
 #include "RidProtocol.hpp"
+#include "RidProtocolPublications.hpp"
 #include "mavlink_main.h"
 #include <lib/remote_id/RidState.hpp>
-#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/rid_identity_request.h>
 #include <uORB/topics/rid_flight_status.h>
@@ -21,6 +21,8 @@ pthread_mutex_t session_mutex = PTHREAD_MUTEX_INITIALIZER;
 uint64_t boot_id = 0;
 rid_identity_request_s owner{};
 rid::Session reporting_session;
+// Single-slot publishers must outlive handlers so asynchronous consumers can read them.
+RidProtocolPublications publications;
 
 bool isTarget(uint8_t system, uint8_t component)
 {
@@ -125,8 +127,7 @@ void handleRidIdentityRequest(Mavlink &mavlink, const mavlink_message_t &message
 	}
 
 	if (!same_owner) {
-		uORB::Publication<rid_uom_status_s> status_pub{ORB_ID(rid_uom_status)};
-		status_pub.publish(rid_uom_status_s{});
+		publications.publishUomStatus(rid_uom_status_s{});
 	}
 
 	{
@@ -140,8 +141,7 @@ void handleRidIdentityRequest(Mavlink &mavlink, const mavlink_message_t &message
 		owner.target_component = message.compid;
 		owner.flags = duplicate ? 0 : request.flags;
 		owner.protocol_version = request.protocol_version;
-		uORB::Publication<rid_identity_request_s> pub{ORB_ID(rid_identity_request)};
-		pub.publish(owner);
+		publications.publishIdentityRequest(owner);
 	}
 
 	pthread_mutex_unlock(&session_mutex);
@@ -188,8 +188,7 @@ void handleRidUomStatus(const mavlink_message_t &message)
 	    && identity_sub.copy(&identity) && identity.result == rid_identity_s::RESULT_OK
 	    && rid::recent(identity.timestamp, now, rid::IDENTITY_TIMEOUT_US) && rid::matches(identity, status)
 	    && reporting_session.accept(input.session_id, message.sysid, message.compid, input.sequence, now, input.protocol_version)) {
-		uORB::Publication<rid_uom_status_s> pub{ORB_ID(rid_uom_status)};
-		pub.publish(status);
+		publications.publishUomStatus(status);
 	}
 
 	pthread_mutex_unlock(&session_mutex);
