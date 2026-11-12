@@ -95,7 +95,6 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 	struct TxItem {
 		uavcan::MonotonicTime deadline;
 		uavcan::CanFrame frame;
-		uavcan::uint8_t index;
 		bool pending;
 		bool loopback;
 		bool abort_on_error;
@@ -122,6 +121,7 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 	fdcan::CanType *const can_;
 	uavcan::uint64_t error_cnt_;
 	uavcan::uint32_t served_aborts_cnt_;
+	uavcan::uint32_t tx_timeouts_cnt_;
 	BusEvent &update_event_;
 	TxItem pending_tx_[NumTxMailboxes];
 	uavcan::uint8_t peak_tx_mailbox_index_;
@@ -146,6 +146,11 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 public:
 	enum { MaxRxQueueCapacity = 64 };
 
+	struct TxCancellationCounters {
+		uavcan::uint32_t timeouts;
+		uavcan::uint32_t aborts_on_error;
+	};
+
 	enum OperatingMode {
 		NormalMode,
 		SilentMode
@@ -157,6 +162,7 @@ public:
 		, can_(can)
 		, error_cnt_(0)
 		, served_aborts_cnt_(0)
+		, tx_timeouts_cnt_(0)
 		, update_event_(update_event)
 		, peak_tx_mailbox_index_(0)
 		, self_index_(self_index)
@@ -226,6 +232,9 @@ public:
 	 * See @ref uavcan::CanIOFlagAbortOnError.
 	 */
 	uavcan::uint32_t getVoluntaryTxAbortCount() const { return served_aborts_cnt_; }
+
+	/** Snapshot of software cancellation requests since init(), without reading hardware registers. */
+	TxCancellationCounters getTxCancellationCounters() const;
 
 	/**
 	 * Returns the number of frames pending in the RX queue.

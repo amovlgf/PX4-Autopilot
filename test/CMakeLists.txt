@@ -27,3 +27,8 @@ add_custom_target(test_results
         COMMENT "Running tests"
         WORKING_DIRECTORY ${PX4_BINARY_DIR})
 set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+# Exercise the hardware-independent H7 cancellation logic on the host.
+px4_add_unit_gtest(SRC
+    ${PX4_SOURCE_DIR}/src/drivers/uavcan/uavcan_drivers/stm32h7/driver/test/STM32H7TxCancellationTest.cpp
+)

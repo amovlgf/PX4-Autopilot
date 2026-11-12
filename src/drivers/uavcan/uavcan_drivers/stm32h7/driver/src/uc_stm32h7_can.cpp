@@ -49,6 +49,7 @@
 #include <uavcan_stm32h7/can.hpp>
 #include <uavcan_stm32h7/clock.hpp>
 #include "internal.hpp"
+#include "tx_cancellation.hpp"
 
 #if UAVCAN_STM32H7_NUTTX
 # include <nuttx/arch.h>
@@ -474,7 +475,7 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 		   (uavcan::uint32_t(frame.data[4]) << 0);
 
 	// Submit the transmission request for this element
-	can_->TXBAR = 1 << index;
+	can_->TXBAR = uint32_t(1) << index;
 
 	/*
 	 * Registering the pending transmission so we can track its deadline and loopback it as needed
@@ -484,7 +485,6 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	txi.frame          = frame;
 	txi.loopback       = (flags & uavcan::CanIOFlagLoopback) != 0;
 	txi.abort_on_error = (flags & uavcan::CanIOFlagAbortOnError) != 0;
-	txi.index          = index;
 	txi.pending        = true;
 
 	return 1;
@@ -706,6 +706,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	rx_queue_.reset();
 	error_cnt_ = 0;
 	served_aborts_cnt_ = 0;
+	tx_timeouts_cnt_ = 0;
 	uavcan::fill_n(pending_tx_, NumTxMailboxes, TxItem());
 	peak_tx_mailbox_index_ = 0;
 	had_activity_ = false;
@@ -876,7 +877,7 @@ void CanIface::handleTxInterrupt(const uavcan::uint64_t utc_usec)
 	// Update counters for successful transmissions
 	// Process loopback messages
 	for (uint8_t i = 0; i < NumTxMailboxes; i++) {
-		if ((can_->TXBTO & (1 << i)) > 0) {
+		if ((can_->TXBTO & (uint32_t(1) << i)) > 0) {
 			// Transmission Occurred in buffer i
 			TxItem &txi = pending_tx_[i];
 
@@ -1010,10 +1011,7 @@ void CanIface::pollErrorFlagsFromISR()
 		for (uint8_t i = 0; i < NumTxMailboxes; i++) {
 			TxItem &txi = pending_tx_[i];
 
-			if (txi.abort_on_error && ((1 << txi.index) & can_->TXBRP)) {
-				// Request to Cancel Tx item
-				can_->TXBCR = (1 << txi.index);
-				txi.pending = false;
+			if (tx_cancellation::cancelOnError(txi.pending, i, can_->TXBRP, can_->TXBCR, txi.abort_on_error)) {
 				error_cnt_++;
 				served_aborts_cnt_++;
 			}
@@ -1028,11 +1026,10 @@ void CanIface::discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time)
 	for (uint8_t i = 0; i < NumTxMailboxes; i++) {
 		TxItem &txi = pending_tx_[i];
 
-		if (((1 << txi.index) & can_->TXBRP) && txi.deadline < current_time) {
-			// Request to Cancel Tx item
-			can_->TXBCR = (1 << txi.index);
-			txi.pending = false;
+		if (tx_cancellation::cancelTimedOut(txi.pending, i, can_->TXBRP, can_->TXBCR,
+						    txi.deadline.toUSec(), current_time.toUSec())) {
 			error_cnt_++;
+			tx_timeouts_cnt_++;
 		}
 	}
 }
@@ -1058,6 +1055,15 @@ bool CanIface::isRxBufferEmpty() const
 {
 	CriticalSectionLocker lock;
 	return rx_queue_.getLength() == 0;
+}
+
+CanIface::TxCancellationCounters CanIface::getTxCancellationCounters() const
+{
+	CriticalSectionLocker lock;
+	TxCancellationCounters counters;
+	counters.timeouts = tx_timeouts_cnt_;
+	counters.aborts_on_error = served_aborts_cnt_;
+	return counters;
 }
 
 uavcan::uint64_t CanIface::getErrorCount() const

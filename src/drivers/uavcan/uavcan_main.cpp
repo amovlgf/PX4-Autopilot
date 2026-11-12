@@ -1317,6 +1317,13 @@ UavcanNode::print_info()
 			printf("\tRX frames: %" PRIu64 "\n", iface_perf_cnt.frames_rx);
 			printf("\tTX frames: %" PRIu64 "\n", iface_perf_cnt.frames_tx);
 
+#if defined(UAVCAN_STM32H7_NUTTX)
+			const auto cancellations = static_cast<UAVCAN_DRIVER::CanIface *>(iface)->getTxCancellationCounters();
+			printf("\tTX timeout cancels: %" PRIu32 "\n", cancellations.timeouts);
+			printf("\tTX error cancels:   %" PRIu32 "\n", cancellations.aborts_on_error);
+			printf("\tHW errors include TX cancellations; TX frames count driver-accepted frames.\n");
+#endif
+
 			auto txq = _node.getDispatcher().getCanIOManager().getTxQueuePerfCounters(i);
 			printf("\tTX queue peak: %" PRIu16 "/%" PRIu16 " blocks\n", txq.peak_used_blocks, txq.block_limit);
 			printf("\tTX rejected:   %" PRIu32 " frames (%" PRIu32 " expired, %" PRIu32 " no memory)\n",
