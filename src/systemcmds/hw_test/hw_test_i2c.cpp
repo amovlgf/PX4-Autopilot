@@ -52,6 +52,26 @@ static int bmi088_accel_stop(int bus)
 	return bmi088_i2c_invoke(6, argv);
 }
 
+static int test_i2c_bus(int bus, bool verify_stop = false)
+{
+	const int ret = bmi088_accel_start(bus);
+
+	if (ret != 0) {
+		(void)bmi088_accel_stop(bus);
+		PX4_ERR("I2C FAIL bus%d %d", bus, ret);
+		return ret;
+	}
+
+	px4_usleep(kPostStartSettleUs);
+	const int stop_ret = bmi088_accel_stop(bus);
+
+	if (verify_stop && stop_ret != 0) {
+		PX4_ERR("I2C FAIL bus%d: BMI088 stop returned %d", bus, stop_ret);
+		return stop_ret;
+	}
+
+	return 0;
+}
 #endif
 
 int test_i2c()
@@ -60,31 +80,40 @@ int test_i2c()
 	PX4_ERR("I2C FAIL %d", -ENODEV);
 	return -ENODEV;
 #else
-	int ret = bmi088_accel_start(1);
+	int ret = test_i2c_bus(1);
 
 	if (ret != 0) {
-		(void)bmi088_accel_stop(1);
-		PX4_ERR("I2C FAIL bus1 %d", ret);
 		return ret;
 	}
 
-	px4_usleep(kPostStartSettleUs);
-
-	(void)bmi088_accel_stop(1);
 	px4_usleep(50000);
+	ret = test_i2c_bus(4);
 
-	ret = bmi088_accel_start(4);
-
-	if (ret != 0) {
-		(void)bmi088_accel_stop(4);
-		PX4_ERR("I2C FAIL bus4 %d", ret);
-		return ret;
+	if (ret == 0) {
+		PX4_INFO("I2C PASS");
 	}
 
-	px4_usleep(kPostStartSettleUs);
-
-	(void)bmi088_accel_stop(4);
-	PX4_INFO("I2C PASS");
-	return 0;
+	return ret;
 #endif
 }
+
+#if defined(CONFIG_BOARD_FLYCORE_Q_HW_TEST)
+int hw_test_q_i2c(unsigned item)
+{
+#if defined(CONFIG_DRIVERS_IMU_BOSCH_BMI088_I2C)
+
+	if (item != HW_TEST_Q_I2C1 && item != HW_TEST_Q_I2C4) {
+		return -EINVAL;
+	}
+
+	const int ret = test_i2c_bus(item == HW_TEST_Q_I2C1 ? 1 : 4, true);
+
+	// Keep the bus-switch settle delay used by the ICF6 fixture.
+	px4_usleep(50000);
+	return ret;
+#else
+	(void)item;
+	return -ENODEV;
+#endif
+}
+#endif

@@ -1,8 +1,148 @@
 #include "hw_test.h"
 
+#include <cerrno>
 #include <cstring>
 
 #include <px4_platform_common/log.h>
+
+#if defined(CONFIG_BOARD_FLYCORE_Q_HW_TEST)
+
+#include <pthread.h>
+
+static pthread_mutex_t test_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static constexpr uint16_t item_bit(unsigned item)
+{
+	return static_cast<uint16_t>(1u << item);
+}
+
+static int run_q_item(unsigned item)
+{
+	switch (item) {
+	case HW_TEST_Q_UART2:
+	case HW_TEST_Q_UART8:
+	case HW_TEST_Q_UART6:
+	case HW_TEST_Q_UART7:
+	case HW_TEST_Q_UART4:
+		return hw_test_q_uart(item);
+
+	case HW_TEST_Q_UART5:
+		return hw_test_q_ping_6490();
+
+	case HW_TEST_Q_SPI1:
+	case HW_TEST_Q_SPI2:
+	case HW_TEST_Q_SPI4:
+		return hw_test_q_spi(item);
+
+	case HW_TEST_Q_PWM:
+		return hw_test_q_pwm();
+
+	case HW_TEST_Q_CAN1_TO_CAN2:
+	case HW_TEST_Q_CAN2_TO_CAN1:
+		return hw_test_q_can(item);
+
+	case HW_TEST_Q_I2C1:
+	case HW_TEST_Q_I2C4:
+		return hw_test_q_i2c(item);
+
+	case HW_TEST_Q_SD:
+		return hw_test_q_sd();
+
+	default:
+		return -EINVAL;
+	}
+}
+
+static int run_q_items(uint16_t selected, HwTestQResult &result, void (*progress)(unsigned, void *), void *context)
+{
+	result = {};
+	const int lock_result = pthread_mutex_trylock(&test_mutex);
+
+	if (lock_result != 0) {
+		return -lock_result;
+	}
+
+	static constexpr const char *item_names[] {
+		"UART2", "UART8", "UART6", "UART7", "UART4 RTK", "UART5 6490",
+		"SPI1 BMI088", "SPI2 ICM42688P", "SPI4 FRAM", "PWM 1-8", "CAN1 to CAN2", "CAN2 to CAN1",
+		"I2C1", "I2C4", "SD card"
+	};
+	static_assert(sizeof(item_names) / sizeof(item_names[0]) == HW_TEST_Q_ITEM_COUNT, "Missing item name");
+	int ret = 0;
+
+	for (unsigned item = 0; item < HW_TEST_Q_ITEM_COUNT; ++item) {
+		const uint16_t bit = item_bit(item);
+
+		if (!(selected & bit)) {
+			continue;
+		}
+
+		if (progress) {
+			progress(item, context);
+		}
+
+		const int item_result = run_q_item(item);
+		result.executed_mask |= bit;
+
+		if (item_result == 0) {
+			result.passed_mask |= bit;
+			HW_TEST_PASS(item_names[item]);
+
+		} else {
+			HW_TEST_FAIL(item_names[item], "error %d", item_result);
+
+			if (ret == 0) {
+				ret = item_result;
+			}
+		}
+	}
+
+	pthread_mutex_unlock(&test_mutex);
+	return ret;
+}
+
+int hw_test_q_run(HwTestQResult &result, void (*progress)(unsigned, void *), void *context)
+{
+	return run_q_items(HW_TEST_Q_REQUIRED_MASK, result, progress, context);
+}
+
+int hw_test_run_all()
+{
+	HwTestQResult result{};
+	const int ret = hw_test_q_run(result);
+	PX4_INFO("Flycore-Q %s, executed 0x%04x, passed 0x%04x",
+		 ret == 0 ? "PASS" : "FAIL", static_cast<unsigned>(result.executed_mask),
+		 static_cast<unsigned>(result.passed_mask));
+	return ret;
+}
+
+int hw_test_run_target(const char *target)
+{
+	static constexpr struct {
+		const char *name;
+		uint16_t items;
+	} targets[] {
+		{"uart", (1u << (HW_TEST_Q_UART5 + 1)) - 1},
+		{"spi", item_bit(HW_TEST_Q_SPI1) | item_bit(HW_TEST_Q_SPI2) | item_bit(HW_TEST_Q_SPI4)},
+		{"pwm", item_bit(HW_TEST_Q_PWM)},
+		{"can", item_bit(HW_TEST_Q_CAN1_TO_CAN2) | item_bit(HW_TEST_Q_CAN2_TO_CAN1)},
+		{"can_ext", item_bit(HW_TEST_Q_CAN1_TO_CAN2) | item_bit(HW_TEST_Q_CAN2_TO_CAN1)},
+		{"i2c", item_bit(HW_TEST_Q_I2C1) | item_bit(HW_TEST_Q_I2C4)},
+		{"sd", item_bit(HW_TEST_Q_SD)}
+	};
+
+	for (const auto &entry : targets) {
+		if (strcmp(target, entry.name) == 0) {
+			HwTestQResult result{};
+			return run_q_items(entry.items, result, nullptr, nullptr);
+		}
+	}
+
+	PX4_ERR("unknown target: %s", target);
+	return -EINVAL;
+}
+
+#else
 
 static constexpr const char *kAnsiReset = "\x1b[0m";
 static constexpr const char *kAnsiBoldGreen = "\x1b[1;32m";
@@ -122,3 +262,5 @@ int hw_test_run_all()
 
 	return ret;
 }
+
+#endif // CONFIG_BOARD_FLYCORE_Q_HW_TEST

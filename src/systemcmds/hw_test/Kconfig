@@ -6,6 +6,14 @@ menuconfig SYSTEMCMDS_HW_TEST
 	---help---
 		Enable support for hw_test
 
+config BOARD_FLYCORE_Q_HW_TEST
+	bool "Flycore-Q incoming inspection"
+	default n
+	depends on SYSTEMCMDS_HW_TEST
+	select SYSTEMCMDS_SD_BENCH
+	---help---
+		Enable the Flycore-Q fixture tests and dedicated MAVLink service.
+
 menuconfig USER_HW_TEST
 	bool "hw_test running as userspace module"
 	default y

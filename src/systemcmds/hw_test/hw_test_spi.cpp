@@ -81,11 +81,13 @@ static uint8_t device_type_from_id(uint32_t device_id)
 	return devtype;
 }
 
-static bool device_is_on_bus_type(uint32_t device_id, device::Device::DeviceBusType bus_type)
+static bool matches_spi_device(uint32_t device_id, uint8_t device_type, uint8_t expected_bus)
 {
-	device::Device::DeviceId devid{};
+	device::Device::DeviceId devid {};
 	devid.devid = device_id;
-	return devid.devid_s.bus_type == bus_type;
+	return devid.devid_s.bus_type == device::Device::DeviceBusType_SPI
+	       && device_type_from_id(device_id) == device_type
+	       && (expected_bus == 0 || devid.devid_s.bus == expected_bus);
 }
 
 struct SpiSensorSeen {
@@ -111,40 +113,39 @@ struct SpiSensorSeen {
 	uint32_t gyro_icm_err_last{0};
 };
 
-static SpiSensorSeen wait_for_spi_sensor_status()
+static SpiSensorSeen wait_for_spi_sensor_status(bool require_board_buses = false)
 {
 	uORB::SubscriptionMultiArray<sensor_accel_s, kMaxAccelSens> accel_subs{ORB_ID::sensor_accel};
 	uORB::SubscriptionMultiArray<sensor_gyro_s, kMaxGyroSens> gyro_subs{ORB_ID::sensor_gyro};
 	uORB::SubscriptionMultiArray<vehicle_imu_s, kMaxVehicleImu> vimu_subs{ORB_ID::vehicle_imu};
 	const hrt_abstime start = hrt_absolute_time();
-	SpiSensorSeen seen{};
+	SpiSensorSeen seen {};
+	const uint8_t bmi_bus = require_board_buses ? 1 : 0;
+	const uint8_t icm_bus = require_board_buses ? 2 : 0;
 
 	while ((hrt_elapsed_time(&start) / 1000) < kSpiSensorWaitMs) {
 		for (unsigned i = 0; i < kMaxVehicleImu; i++) {
 			vehicle_imu_s msg {};
 
 			while (vimu_subs[i].update(&msg)) {
-				const uint8_t acc_dt = device_type_from_id(msg.accel_device_id);
-				const uint8_t gyr_dt = device_type_from_id(msg.gyro_device_id);
+				if (require_board_buses && msg.timestamp < start) {
+					continue;
+				}
 
-				if (device_is_on_bus_type(msg.accel_device_id, device::Device::DeviceBusType_SPI)
-				    && acc_dt == DRV_ACC_DEVTYPE_BMI088) {
+				if (matches_spi_device(msg.accel_device_id, DRV_ACC_DEVTYPE_BMI088, bmi_bus)) {
 					seen.accel_bmi = true;
 					seen.accel_bmi_last = msg.timestamp;
 
-				} else if (device_is_on_bus_type(msg.accel_device_id, device::Device::DeviceBusType_SPI)
-					   && acc_dt == DRV_IMU_DEVTYPE_ICM42688P) {
+				} else if (matches_spi_device(msg.accel_device_id, DRV_IMU_DEVTYPE_ICM42688P, icm_bus)) {
 					seen.accel_icm = true;
 					seen.accel_icm_last = msg.timestamp;
 				}
 
-				if (device_is_on_bus_type(msg.gyro_device_id, device::Device::DeviceBusType_SPI)
-				    && gyr_dt == DRV_GYR_DEVTYPE_BMI088) {
+				if (matches_spi_device(msg.gyro_device_id, DRV_GYR_DEVTYPE_BMI088, bmi_bus)) {
 					seen.gyro_bmi = true;
 					seen.gyro_bmi_last = msg.timestamp;
 
-				} else if (device_is_on_bus_type(msg.gyro_device_id, device::Device::DeviceBusType_SPI)
-					   && gyr_dt == DRV_IMU_DEVTYPE_ICM42688P) {
+				} else if (matches_spi_device(msg.gyro_device_id, DRV_IMU_DEVTYPE_ICM42688P, icm_bus)) {
 					seen.gyro_icm = true;
 					seen.gyro_icm_last = msg.timestamp;
 				}
@@ -155,10 +156,11 @@ static SpiSensorSeen wait_for_spi_sensor_status()
 			sensor_accel_s msg {};
 
 			while (accel_subs[i].update(&msg)) {
-				const uint8_t dt = device_type_from_id(msg.device_id);
+				if (require_board_buses && msg.timestamp < start) {
+					continue;
+				}
 
-				if (device_is_on_bus_type(msg.device_id, device::Device::DeviceBusType_SPI)
-				    && dt == DRV_ACC_DEVTYPE_BMI088) {
+				if (matches_spi_device(msg.device_id, DRV_ACC_DEVTYPE_BMI088, bmi_bus)) {
 					seen.accel_bmi = true;
 					seen.accel_bmi_last = msg.timestamp;
 					seen.accel_bmi_err_last = msg.error_count;
@@ -168,8 +170,7 @@ static SpiSensorSeen wait_for_spi_sensor_status()
 						seen.accel_bmi_err_init = true;
 					}
 
-				} else if (device_is_on_bus_type(msg.device_id, device::Device::DeviceBusType_SPI)
-					   && dt == DRV_IMU_DEVTYPE_ICM42688P) {
+				} else if (matches_spi_device(msg.device_id, DRV_IMU_DEVTYPE_ICM42688P, icm_bus)) {
 					seen.accel_icm = true;
 					seen.accel_icm_last = msg.timestamp;
 					seen.accel_icm_err_last = msg.error_count;
@@ -186,10 +187,11 @@ static SpiSensorSeen wait_for_spi_sensor_status()
 			sensor_gyro_s msg {};
 
 			while (gyro_subs[i].update(&msg)) {
-				const uint8_t dt = device_type_from_id(msg.device_id);
+				if (require_board_buses && msg.timestamp < start) {
+					continue;
+				}
 
-				if (device_is_on_bus_type(msg.device_id, device::Device::DeviceBusType_SPI)
-				    && dt == DRV_GYR_DEVTYPE_BMI088) {
+				if (matches_spi_device(msg.device_id, DRV_GYR_DEVTYPE_BMI088, bmi_bus)) {
 					seen.gyro_bmi = true;
 					seen.gyro_bmi_last = msg.timestamp;
 					seen.gyro_bmi_err_last = msg.error_count;
@@ -199,8 +201,7 @@ static SpiSensorSeen wait_for_spi_sensor_status()
 						seen.gyro_bmi_err_init = true;
 					}
 
-				} else if (device_is_on_bus_type(msg.device_id, device::Device::DeviceBusType_SPI)
-					   && dt == DRV_IMU_DEVTYPE_ICM42688P) {
+				} else if (matches_spi_device(msg.device_id, DRV_IMU_DEVTYPE_ICM42688P, icm_bus)) {
 					seen.gyro_icm = true;
 					seen.gyro_icm_last = msg.timestamp;
 					seen.gyro_icm_err_last = msg.error_count;
@@ -219,7 +220,7 @@ static SpiSensorSeen wait_for_spi_sensor_status()
 	return seen;
 }
 
-int test_spi()
+static int test_fram()
 {
 	char arg0[] = "mtd";
 	char arg1[] = "rwtest";
@@ -230,11 +231,21 @@ int test_spi()
 
 	if (fram_ret != 0) {
 		HW_TEST_FAIL("FRAM", "mtd rwtest returned %d", fram_ret);
-		HW_TEST_FAIL(kTestName, "FRAM read/write test failed");
 		return fram_ret;
 	}
 
 	HW_TEST_PASS("FRAM");
+	return 0;
+}
+
+int test_spi()
+{
+	const int fram_ret = test_fram();
+
+	if (fram_ret != 0) {
+		HW_TEST_FAIL(kTestName, "FRAM read/write test failed");
+		return fram_ret;
+	}
 
 	// Collect IMU data after the blocking FRAM test to preserve the freshness window.
 	const SpiSensorSeen seen = wait_for_spi_sensor_status();
@@ -296,3 +307,48 @@ int test_spi()
 	HW_TEST_PASS(kTestName);
 	return HW_TEST_OK;
 }
+
+#if defined(CONFIG_BOARD_FLYCORE_Q_HW_TEST)
+int hw_test_q_spi(unsigned item)
+{
+	if (item == HW_TEST_Q_SPI4) {
+		return test_fram();
+	}
+
+	if (item != HW_TEST_Q_SPI1 && item != HW_TEST_Q_SPI2) {
+		return -EINVAL;
+	}
+
+	const bool bmi = item == HW_TEST_Q_SPI1;
+	const char *sensor = bmi ? "SPI1 BMI088" : "SPI2 ICM42688P";
+	const SpiSensorSeen seen = wait_for_spi_sensor_status(true);
+	const hrt_abstime accel_last = bmi ? seen.accel_bmi_last : seen.accel_icm_last;
+	const hrt_abstime gyro_last = bmi ? seen.gyro_bmi_last : seen.gyro_icm_last;
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (accel_last == 0 || gyro_last == 0 || now - accel_last > kSpiFreshWindowUs || now - gyro_last > kSpiFreshWindowUs) {
+		HW_TEST_FAIL(sensor, "accelerometer or gyroscope data missing or stale");
+		return -ETIMEDOUT;
+	}
+
+	const bool err_count_ready = bmi ? seen.accel_bmi_err_init && seen.gyro_bmi_err_init
+				     : seen.accel_icm_err_init && seen.gyro_icm_err_init;
+
+	if (!err_count_ready) {
+		HW_TEST_FAIL(sensor, "IMU error_count baseline missing");
+		return -ENODATA;
+	}
+
+	const uint32_t accel_delta = bmi ? seen.accel_bmi_err_last - seen.accel_bmi_err_first
+				     : seen.accel_icm_err_last - seen.accel_icm_err_first;
+	const uint32_t gyro_delta = bmi ? seen.gyro_bmi_err_last - seen.gyro_bmi_err_first
+				    : seen.gyro_icm_err_last - seen.gyro_icm_err_first;
+
+	if (accel_delta != 0 || gyro_delta != 0) {
+		HW_TEST_FAIL(sensor, "IMU error_count changed (accel:%" PRIu32 " gyro:%" PRIu32 ")", accel_delta, gyro_delta);
+		return -EIO;
+	}
+
+	return 0;
+}
+#endif

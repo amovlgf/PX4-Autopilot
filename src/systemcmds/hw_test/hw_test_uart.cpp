@@ -198,7 +198,7 @@ static int uart_loopback_once(const char *dev, int &out_errno, const char *&out_
 	return 0;
 }
 
-static int uart_check_ttys2_via_gps_status(int &out_errno, const char *&out_reason)
+static int uart_check_ttys2_via_gps_status(int &out_errno, const char *&out_reason, bool require_new_sample)
 {
 	out_errno = 0;
 	out_reason = nullptr;
@@ -215,15 +215,20 @@ static int uart_check_ttys2_via_gps_status(int &out_errno, const char *&out_reas
 	pfd.fd = sub;
 	pfd.events = POLLIN;
 
-	const int pr = poll(&pfd, 1, kGpsStatusWaitMs);
+	const hrt_abstime start = hrt_absolute_time();
 	sensor_gps_s gps {};
 	bool got = false;
+	int remaining_ms = kGpsStatusWaitMs;
 
-	if (pr > 0 && (pfd.revents & POLLIN)) {
-		if (orb_copy(ORB_ID(sensor_gps), sub, &gps) == 0) {
-			got = true;
+	do {
+		const int pr = poll(&pfd, 1, remaining_ms);
+
+		if (pr > 0 && (pfd.revents & POLLIN) && orb_copy(ORB_ID(sensor_gps), sub, &gps) == 0) {
+			got = !require_new_sample || gps.timestamp >= start;
 		}
-	}
+
+		remaining_ms = kGpsStatusWaitMs - static_cast<int>(hrt_elapsed_time(&start) / 1000);
+	} while (require_new_sample && !got && remaining_ms > 0);
 
 	orb_unsubscribe(sub);
 
@@ -255,89 +260,94 @@ static int uart_check_ttys2_via_gps_status(int &out_errno, const char *&out_reas
 	return 0;
 }
 
+static int test_uart_loopback_port(const char *dev)
+{
+	int saved_errno = 0;
+	const char *reason = nullptr;
+	int r = -ETIMEDOUT;
+
+	for (int attempt = 0; attempt < kRetryCount; ++attempt) {
+		r = uart_loopback_once(dev, saved_errno, reason);
+
+		if (r == 0) {
+			break;
+		}
+
+		px4_usleep(kRetryIntervalUs);
+	}
+
+	if (r == 0) {
+		uart_item_pass(dev);
+
+	} else {
+		if (saved_errno != 0 && reason != nullptr) {
+			// Provide both a FAIL flag and the underlying errno.
+			if (strcmp(reason, "open failed") == 0) {
+				uart_item_fail_errno(dev, "open", saved_errno);
+
+			} else if (strcmp(reason, "write failed") == 0) {
+				uart_item_fail_errno(dev, "write", saved_errno);
+
+			} else {
+				uart_item_fail_errno(dev, reason, saved_errno);
+			}
+
+		} else {
+			uart_item_fail(dev, reason != nullptr ? reason : "unknown error");
+		}
+
+		PX4_ERR("[FAIL] %s %s (failed after %d attempts)", kTestName, dev, kRetryCount);
+		printf("[FAIL] %s %s (failed after %d attempts)\n", kTestName, dev, kRetryCount);
+	}
+
+	return r;
+}
+
+static int test_uart_gps_port(bool require_new_sample)
+{
+	const char *dev = "/dev/ttyS2";
+	int saved_errno = 0;
+	const char *reason = nullptr;
+	const int r = uart_check_ttys2_via_gps_status(saved_errno, reason, require_new_sample);
+
+	if (r == 0) {
+		PX4_INFO("UART %s gps status: OK", dev);
+		printf("UART %s gps status: OK\n", dev);
+		uart_item_pass(dev);
+
+	} else {
+		PX4_ERR("UART %s gps status: NOT OK", dev);
+		printf("UART %s gps status: NOT OK\n", dev);
+
+		if (saved_errno != 0 && reason != nullptr) {
+			uart_item_fail_errno(dev, reason, saved_errno);
+
+		} else {
+			uart_item_fail(dev, reason != nullptr ? reason : "gps status not ok");
+		}
+	}
+
+	return r;
+}
+
 int test_uart()
 {
-	// Only test the UARTs that are physically looped back (RX/TX shorted) on ICF6.
-	// Mapping reference (boards/amovlab/icf6/nuttx-config/include/board.h):
-	// USART2 -> /dev/ttyS0
-	// UART5  -> /dev/ttyS3
-	// USART6 -> /dev/ttyS4  (same loopback test; FAT image should not run rc_input on this port)
-	// UART7  -> /dev/ttyS5
-	// UART8  -> /dev/ttyS6
+	// ICF6 loopback fixture ports: USART2, UART5, USART6, UART7, UART8.
 	static constexpr const char *loop_ports[] {"/dev/ttyS0", "/dev/ttyS3", "/dev/ttyS4", "/dev/ttyS5", "/dev/ttyS6"};
 	int ret = 0;
 
 	for (const char *dev : loop_ports) {
-		int saved_errno = 0;
-		const char *reason = nullptr;
-		int r = -ETIMEDOUT;
+		const int port_ret = test_uart_loopback_port(dev);
 
-		for (int attempt = 0; attempt < kRetryCount; ++attempt) {
-			r = uart_loopback_once(dev, saved_errno, reason);
-
-			if (r == 0) {
-				break;
-			}
-
-			px4_usleep(kRetryIntervalUs);
-		}
-
-		if (r == 0) {
-			uart_item_pass(dev);
-
-		} else {
-			if (saved_errno != 0 && reason != nullptr) {
-				// Provide both a FAIL flag and the underlying errno.
-				if (strcmp(reason, "open failed") == 0) {
-					uart_item_fail_errno(dev, "open", saved_errno);
-
-				} else if (strcmp(reason, "write failed") == 0) {
-					uart_item_fail_errno(dev, "write", saved_errno);
-
-				} else {
-					uart_item_fail_errno(dev, reason, saved_errno);
-				}
-
-			} else {
-				uart_item_fail(dev, reason != nullptr ? reason : "unknown error");
-			}
-
-			PX4_ERR("[FAIL] %s %s (failed after %d attempts)", kTestName, dev, kRetryCount);
-			printf("[FAIL] %s %s (failed after %d attempts)\n", kTestName, dev, kRetryCount);
-
-			if (ret == 0) {
-				ret = r;
-			}
+		if (ret == 0) {
+			ret = port_ret;
 		}
 	}
 
-	/* Additional UART check for /dev/ttyS2: judge by GPS status stream health. */
-	{
-		const char *dev = "/dev/ttyS2";
-		int saved_errno = 0;
-		const char *reason = nullptr;
-		const int r = uart_check_ttys2_via_gps_status(saved_errno, reason);
+	const int gps_ret = test_uart_gps_port(false);
 
-		if (r == 0) {
-			PX4_INFO("UART %s gps status: OK", dev);
-			printf("UART %s gps status: OK\n", dev);
-			uart_item_pass(dev);
-
-		} else {
-			PX4_ERR("UART %s gps status: NOT OK", dev);
-			printf("UART %s gps status: NOT OK\n", dev);
-
-			if (saved_errno != 0 && reason != nullptr) {
-				uart_item_fail_errno(dev, reason, saved_errno);
-
-			} else {
-				uart_item_fail(dev, reason != nullptr ? reason : "gps status not ok");
-			}
-
-			if (ret == 0) {
-				ret = r;
-			}
-		}
+	if (ret == 0) {
+		ret = gps_ret;
 	}
 
 	if (ret == 0) {
@@ -348,3 +358,17 @@ int test_uart()
 	HW_TEST_FAIL(kTestName, "one or more uart checks failed");
 	return ret;
 }
+
+#if defined(CONFIG_BOARD_FLYCORE_Q_HW_TEST)
+int hw_test_q_uart(unsigned item)
+{
+	// Flycore-Q loopback fixture ports: USART2, UART8, USART6, UART7.
+	static constexpr const char *loop_ports[] {"/dev/ttyS0", "/dev/ttyS6", "/dev/ttyS4", "/dev/ttyS5"};
+
+	if (item < sizeof(loop_ports) / sizeof(loop_ports[0])) {
+		return test_uart_loopback_port(loop_ports[item]);
+	}
+
+	return item == HW_TEST_Q_UART4 ? test_uart_gps_port(true) : -EINVAL;
+}
+#endif

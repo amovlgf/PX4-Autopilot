@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<mavlink>
+  <include>common.xml</include>
+  <version>3</version>
+  <enums>
+    <enum name="FLYCORE_TEST_PHASE">
+      <description>State of a Flycore-Q incoming inspection request.</description>
+      <entry value="0" name="FLYCORE_TEST_PHASE_ACCEPTED"><description>The runner owns the test and is starting it.</description></entry>
+      <entry value="1" name="FLYCORE_TEST_PHASE_RUNNING"><description>The indicated hardware check is running.</description></entry>
+      <entry value="2" name="FLYCORE_TEST_PHASE_BUSY"><description>Another remote or local test is running.</description></entry>
+    </enum>
+  </enums>
+  <messages>
+    <message id="61100" name="FLYCORE_TEST_START">
+      <description>Request a full Flycore-Q incoming inspection. Send on the dedicated 8550 link.</description>
+      <field type="uint8_t" name="target_system">Flight controller system ID.</field>
+      <field type="uint8_t" name="target_component">Flight controller component ID.</field>
+    </message>
+    <message id="61101" name="FLYCORE_TEST_STATUS">
+      <description>Report acceptance, progress, or rejection of an inspection request.</description>
+      <field type="uint8_t" name="target_system">Station system ID.</field>
+      <field type="uint8_t" name="target_component">Station component ID.</field>
+      <field type="uint8_t" name="phase" enum="FLYCORE_TEST_PHASE">Request state.</field>
+      <field type="uint8_t" name="item">Current result bit index, or 255 when no item applies.</field>
+    </message>
+    <message id="61102" name="FLYCORE_TEST_RESULT">
+      <description>Report the completed inspection to the requesting station.</description>
+      <field type="uint16_t" name="executed_mask">Bit set when the corresponding hardware check ran. Bits 0 through 14 are assigned in the inspection order. Bit 15 is unused and always zero.</field>
+      <field type="uint16_t" name="passed_mask">Bit set when the corresponding hardware check passed. Bits 0 through 14 are assigned in the inspection order. Bit 15 is unused and always zero.</field>
+      <field type="uint8_t" name="target_system">Station system ID.</field>
+      <field type="uint8_t" name="target_component">Station component ID.</field>
+      <field type="uint8_t" name="overall_pass">One if all 15 inspection items passed, zero otherwise. The station evaluates UART3 separately upon receiving this report.</field>
+    </message>
+  </messages>
+</mavlink>

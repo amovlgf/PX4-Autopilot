@@ -27,10 +27,9 @@ static constexpr unsigned kBlinkCount = 5;
 static constexpr float kActuatorOff = -1.f;
 static constexpr float kActuatorOn = 1.f;
 
-#if defined(__PX4_NUTTX) && defined(CONFIG_ARCH_BOARD_AMOVLAB_ICF6)
 static void buzzer_gpio_init()
 {
-#if defined(GPIO_BUZZER_1)
+#if defined(__PX4_NUTTX) && defined(CONFIG_ARCH_BOARD_AMOVLAB_ICF6) && defined(GPIO_BUZZER_1)
 	px4_arch_configgpio(GPIO_BUZZER_1);
 	px4_arch_gpiowrite(GPIO_BUZZER_1, 0);
 #endif
@@ -38,11 +37,14 @@ static void buzzer_gpio_init()
 
 static void buzzer_gpio_write(bool high)
 {
-#if defined(GPIO_BUZZER_1)
+#if defined(__PX4_NUTTX) && defined(CONFIG_ARCH_BOARD_AMOVLAB_ICF6) && defined(GPIO_BUZZER_1)
 	px4_arch_gpiowrite(GPIO_BUZZER_1, high ? 1 : 0);
+#else
+	(void)high;
 #endif
 }
 
+#if defined(__PX4_NUTTX) && defined(CONFIG_ARCH_BOARD_AMOVLAB_ICF6)
 /* ICF6 FMU_CH1..10 pins as plain GPIO outputs for LED high-level test */
 static constexpr uint32_t kIcf6PwmGpio[] {
 	/* CH1 */ (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN9),
@@ -266,3 +268,63 @@ int test_pwm()
 	HW_TEST_PASS(kTestName);
 	return HW_TEST_OK;
 }
+
+#if defined(CONFIG_BOARD_FLYCORE_Q_HW_TEST)
+static int set_fixture_pwm(unsigned channel_count, uint16_t pulse_width)
+{
+	for (unsigned channel = 0; channel < channel_count; ++channel) {
+		const int ret = up_pwm_servo_set(channel, pulse_width);
+
+		if (ret != 0) {
+			HW_TEST_FAIL(kTestName, "channel %u setting %u us returned %d", channel + 1, pulse_width, ret);
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
+int hw_test_q_pwm()
+{
+	static constexpr unsigned channel_count = 8;
+	static constexpr uint32_t channel_mask = (1u << channel_count) - 1u;
+	const int initialized = up_pwm_servo_init(channel_mask);
+
+	// On STM32 the return value is the actual initialized mask or a negative error.
+	if (initialized != static_cast<int>(channel_mask)) {
+		up_pwm_servo_deinit(channel_mask);
+		HW_TEST_FAIL(kTestName, "initialize channels 1-8 returned %d", initialized);
+		return initialized < 0 ? initialized : -EIO;
+	}
+
+	int ret = set_fixture_pwm(channel_count, 0);
+
+	if (ret == 0) {
+		up_pwm_servo_arm(true, channel_mask);
+		px4_usleep(kSettleUs);
+	}
+
+	for (unsigned blink = 0; blink < kBlinkCount && ret == 0; ++blink) {
+		ret = set_fixture_pwm(channel_count, kPwmMaxUs);
+
+		if (ret != 0) {
+			break;
+		}
+
+		px4_usleep(kStepHoldUs);
+		ret = set_fixture_pwm(channel_count, 0);
+
+		if (ret == 0) {
+			px4_usleep(kStepHoldUs);
+		}
+	}
+
+	up_pwm_servo_deinit(channel_mask);
+
+	if (ret == 0) {
+		PX4_INFO("PWM channels 1-8 blinked %u times, check all green LEDs at the fixture", kBlinkCount);
+	}
+
+	return ret;
+}
+#endif

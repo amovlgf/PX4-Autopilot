@@ -42,6 +42,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
@@ -57,6 +58,7 @@ typedef struct sdb_config {
 	int run_duration; ///< duration of a single run [ms]
 	bool synchronized; ///< call fsync after each block?
 	bool aligned;
+	bool verify;
 	unsigned int total_blocks_written;
 } sdb_config_t;
 
@@ -68,9 +70,10 @@ static int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size);
 /**
  * Measure the time for fsync.
  * @param fd
- * @return time in ms
+ * @param elapsed_ms accumulator for time in ms
+ * @return fsync status
  */
-static inline unsigned int time_fsync(int fd);
+static inline int time_fsync(int fd, unsigned int &elapsed_ms);
 
 static const char *BENCHMARK_FILE = PX4_STORAGEDIR"/benchmark.tmp";
 
@@ -91,12 +94,11 @@ static void usage()
 extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 {
 	int block_size = 4096;
-	bool verify = false;
 	bool keep = false;
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
-	sdb_config_t cfg;
+	sdb_config_t cfg {};
 	cfg.synchronized = false;
 	cfg.num_runs = 5;
 	cfg.run_duration = 2000;
@@ -130,7 +132,7 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 			break;
 
 		case 'v':
-			verify = true;
+			cfg.verify = true;
 			break;
 
 		default:
@@ -145,7 +147,7 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 		return -1;
 	}
 
-	int bench_fd = open(BENCHMARK_FILE, O_CREAT | (verify ? O_RDWR : O_WRONLY) | O_TRUNC, PX4_O_MODE_666);
+	int bench_fd = open(BENCHMARK_FILE, O_CREAT | (cfg.verify ? O_RDWR : O_WRONLY) | O_TRUNC, PX4_O_MODE_666);
 
 	if (bench_fd < 0) {
 		PX4_ERR("Can't open benchmark file %s", BENCHMARK_FILE);
@@ -163,7 +165,12 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 	if (!block) {
 		PX4_ERR("Failed to allocate memory block");
 		close(bench_fd);
-		return -1;
+
+		if (!keep) {
+			unlink(BENCHMARK_FILE);
+		}
+
+		return -ENOMEM;
 	}
 
 	for (int i = 0; i < block_size; ++i) {
@@ -171,40 +178,43 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 	}
 
 	PX4_INFO("Using block size = %i bytes, sync=%i", block_size, (int)cfg.synchronized);
-	const int write_ret = write_test(bench_fd, &cfg, block, block_size);
+	int ret = write_test(bench_fd, &cfg, block, block_size);
 
-	if (write_ret != 0) {
-		free(block);
-		close(bench_fd);
+	if (ret == 0 && cfg.verify) {
+		if (cfg.total_blocks_written == 0 || lseek(bench_fd, 0, SEEK_SET) != 0) {
+			PX4_ERR("Cannot seek to written data for verification");
+			ret = -EIO;
 
-		if (!keep) {
-			unlink(BENCHMARK_FILE);
+		} else {
+			ret = read_test(bench_fd, &cfg, block, block_size);
 		}
-
-		return write_ret;
-	}
-
-	if (verify) {
-		fsync(bench_fd);
-		lseek(bench_fd, 0, SEEK_SET);
-		read_test(bench_fd, &cfg, block, block_size);
 	}
 
 	free(block);
-	close(bench_fd);
 
-	if (!keep) {
-		unlink(BENCHMARK_FILE);
+	if (close(bench_fd) != 0 && cfg.verify && ret == 0) {
+		ret = -errno;
 	}
 
-	return 0;
+	if (!keep && unlink(BENCHMARK_FILE) != 0 && cfg.verify && ret == 0) {
+		ret = -errno;
+	}
+
+	return ret;
 }
 
-unsigned int time_fsync(int fd)
+int time_fsync(int fd, unsigned int &elapsed_ms)
 {
-	hrt_abstime fsync_start = hrt_absolute_time();
-	fsync(fd);
-	return hrt_elapsed_time(&fsync_start) / 1000;
+	const hrt_abstime fsync_start = hrt_absolute_time();
+	const int ret = fsync(fd);
+	const int result = ret == 0 ? 0 : -errno;
+	elapsed_ms += hrt_elapsed_time(&fsync_start) / 1000;
+	return result;
+}
+
+static size_t block_number_size(int block_size)
+{
+	return static_cast<size_t>(block_size) < sizeof(unsigned int) ? block_size : sizeof(unsigned int);
 }
 
 int write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
@@ -214,7 +224,7 @@ int write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 	double total_elapsed = 0.;
 	unsigned int total_blocks = 0;
 	cfg->total_blocks_written = 0;
-	unsigned int *blocknumber = (unsigned int *)(void *)&block[0];
+	const size_t number_size = block_number_size(block_size);
 	unsigned int max_max_write_time = 0;
 
 	for (int run = 0; run < cfg->num_runs; ++run) {
@@ -226,8 +236,9 @@ int write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 		while ((int64_t)hrt_elapsed_time(&start) < cfg->run_duration * 1000) {
 
 			hrt_abstime write_start = hrt_absolute_time();
-			*blocknumber =  total_blocks + num_blocks;
-			size_t written = write(fd, block, block_size);
+			const unsigned int block_number = total_blocks + num_blocks;
+			memcpy(block, &block_number, number_size);
+			const ssize_t written = write(fd, block, block_size);
 			unsigned int write_time = hrt_elapsed_time(&write_start) / 1000;
 
 			if (write_time > max_write_time) {
@@ -240,7 +251,12 @@ int write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 			}
 
 			if (cfg->synchronized) {
-				fsync_time += time_fsync(fd);
+				const int sync_ret = time_fsync(fd, fsync_time);
+
+				if (sync_ret != 0 && cfg->verify) {
+					PX4_ERR("Write sync error: %d", sync_ret);
+					return sync_ret;
+				}
 			}
 
 			++num_blocks;
@@ -249,7 +265,12 @@ int write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 		//Note: if testing a slow device (SD Card) and the OS buffers a lot (eg. Linux),
 		//fsync can take really long, and it looks like the process hangs. But it does
 		//not and the reported result will still be correct.
-		fsync_time += time_fsync(fd);
+		const int sync_ret = time_fsync(fd, fsync_time);
+
+		if (sync_ret != 0 && cfg->verify) {
+			PX4_ERR("Write sync error: %d", sync_ret);
+			return sync_ret;
+		}
 
 		//report
 		double elapsed = hrt_elapsed_time(&start) / 1.e6;
@@ -289,7 +310,7 @@ int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 
 	double total_elapsed = 0.;
 	unsigned int total_blocks = 0;
-	unsigned int *blocknumber = (unsigned int *)(void *) &read_block[0];
+	const size_t number_size = block_number_size(block_size);
 
 	for (int run = 0; run < cfg->num_runs  && total_blocks < cfg->total_blocks_written; ++run) {
 		hrt_abstime start = hrt_absolute_time();
@@ -300,32 +321,26 @@ int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 		       && total_blocks + num_blocks < cfg->total_blocks_written) {
 
 			hrt_abstime read_start = hrt_absolute_time();
-			size_t nread = read(fd, read_block, block_size);
+			const ssize_t nread = read(fd, read_block, block_size);
 			unsigned int read_time = hrt_elapsed_time(&read_start) / 1000;
 
 			if (read_time > max_read_time) {
 				max_read_time = read_time;
 			}
 
-			if ((int)nread != block_size) {
+			if (nread != block_size) {
 				PX4_ERR("Read error");
 				free(read_block);
-				return -1;
+				return -EIO;
 			}
 
+			const unsigned int block_number = total_blocks + num_blocks;
 
-			if (*blocknumber !=  total_blocks + num_blocks) {
-				PX4_ERR("Read data error at block: %d wrote:0x%04x read:0x%04x", (total_blocks + num_blocks),
-					total_blocks + num_blocks, *blocknumber);
-
-			}
-
-
-			for (unsigned int i = sizeof(*blocknumber); i < (block_size - sizeof(*blocknumber)); ++i) {
-				if (block[i] != read_block[i]) {
-					PX4_ERR("Read data error at offset: %d wrote:0x%02x read:0x%02x", total_blocks + num_blocks + i, block[i],
-						read_block[i]);
-				}
+			if (memcmp(read_block, &block_number, number_size) != 0
+			    || memcmp(read_block + number_size, block + number_size, block_size - number_size) != 0) {
+				PX4_ERR("Read data mismatch at block %u", block_number);
+				free(read_block);
+				return -EIO;
 			}
 
 			++num_blocks;
@@ -341,8 +356,14 @@ int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 		total_blocks += num_blocks;
 	}
 
-	PX4_INFO("  Avg   : %8.2lf KB/s %d blocks read and verified", (double)block_size * total_blocks / total_elapsed / 1024.,
-		 total_blocks);
 	free(read_block);
+
+	if (total_blocks != cfg->total_blocks_written) {
+		PX4_ERR("Verified only %u of %u written blocks", total_blocks, cfg->total_blocks_written);
+		return -ETIMEDOUT;
+	}
+
+	PX4_INFO("  Avg   : %8.2lf KB/s %u blocks read and verified", (double)block_size * total_blocks / total_elapsed / 1024.,
+		 total_blocks);
 	return 0;
 }

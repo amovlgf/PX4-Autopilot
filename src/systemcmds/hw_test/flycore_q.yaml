@@ -1,0 +1,49 @@
+module_name: Flycore-Q Incoming Inspection
+
+parameters:
+  - group: Flycore-Q Incoming Inspection
+    definitions:
+      FQ_8550_BAUD:
+        description:
+          short: Flycore-Q 8550 port baud rate
+        type: int32
+        default: 115200
+        reboot_required: true
+      FQ_8550_SYS:
+        description:
+          short: Flycore-Q 8550 MAVLink system ID
+        type: int32
+        default: 2
+        min: 1
+        max: 255
+        reboot_required: true
+      FQ_8550_COMP:
+        description:
+          short: Flycore-Q 8550 MAVLink component ID
+        type: int32
+        default: 191
+        min: 1
+        max: 255
+        reboot_required: true
+      FQ_6490_BAUD:
+        description:
+          short: Flycore-Q 6490 port baud rate
+        type: int32
+        default: 115200
+        reboot_required: true
+      FQ_6490_SYS:
+        description:
+          short: Flycore-Q 6490 MAVLink system ID
+        type: int32
+        default: 3
+        min: 1
+        max: 255
+        reboot_required: true
+      FQ_6490_COMP:
+        description:
+          short: Flycore-Q 6490 MAVLink component ID
+        type: int32
+        default: 191
+        min: 1
+        max: 255
+        reboot_required: true

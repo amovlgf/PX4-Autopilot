@@ -11,6 +11,11 @@ extern "C" __EXPORT int hw_test_main(int argc, char *argv[]);
 
 static void print_usage()
 {
+#if defined(CONFIG_BOARD_FLYCORE_Q_HW_TEST)
+	PRINT_MODULE_DESCRIPTION("Flycore-Q incoming inspection. Run hw_test_all for the full suite.");
+	PRINT_MODULE_USAGE_NAME_SIMPLE("hw_test", "command");
+	PRINT_MODULE_USAGE_ARG("uart|can|can_ext|spi|i2c|sd|pwm|service start", "test target or service command", false);
+#else
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 PX4 hardware FAT command.
@@ -26,6 +31,7 @@ Usage:
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("hw_test", "command");
 	PRINT_MODULE_USAGE_ARG("uart|can|can_ext|spi|i2c|sd|pwm|um982_cfg|can_tx|can_rx", "test target", false);
+#endif
 }
 
 extern "C" __EXPORT int hw_test_main(int argc, char *argv[])
@@ -35,6 +41,17 @@ extern "C" __EXPORT int hw_test_main(int argc, char *argv[])
 		return -EINVAL;
 	}
 
+#if defined(CONFIG_BOARD_FLYCORE_Q_HW_TEST)
+	if (strcmp(argv[1], "service") == 0) {
+		if (argc == 3 && strcmp(argv[2], "start") == 0) {
+			return hw_test_q_service_start();
+		}
+
+		print_usage();
+		return -EINVAL;
+	}
+
+#else
 	if (strcmp(argv[1], "can_tx") == 0) {
 		if (argc < 3) {
 			PX4_ERR("usage: hw_test can_tx <0|1> [duration_s] [period_ms] [loopback]");
@@ -106,6 +123,7 @@ extern "C" __EXPORT int hw_test_main(int argc, char *argv[])
 
 		return test_um982_cfg(dev, baud);
 	}
+#endif
 
 	return hw_test_run_target(argv[1]);
 }

@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
+# Continue startup with missing peripherals so the station can report their failures.
+set +e
+
+mount -t vfat /dev/mmcsd0 /fs/microsd
+param select /fs/microsd/flycore_q_params.bson
+if [ -f /fs/microsd/flycore_q_params.bson ]
+then
+	param import
+fi
+
+. /etc/init.d/rc.board_sensors
+
+# The fixture provisions the UM982 data output on UART4.
+gps start -d /dev/ttyS2
+
+hw_test service start > /dev/console_buf

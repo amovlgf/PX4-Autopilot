@@ -6,7 +6,7 @@ static constexpr const char *kTestName = "SD";
 
 extern "C" int sd_bench_main(int argc, char *argv[]);
 
-int test_sd()
+static int test_sd_benchmark(bool verify)
 {
 	char arg0[] = "sd_bench";
 	char arg1[] = "-b";
@@ -15,9 +15,10 @@ int test_sd()
 	char arg4[] = "2";
 	char arg5[] = "-d";
 	char arg6[] = "1000";
-	char *argv[] = {arg0, arg1, arg2, arg3, arg4, arg5, arg6, nullptr};
+	char arg7[] = "-v";
+	char *argv[] = {arg0, arg1, arg2, arg3, arg4, arg5, arg6, verify ? arg7 : nullptr, nullptr};
 
-	const int ret = sd_bench_main(7, argv);
+	const int ret = sd_bench_main(verify ? 8 : 7, argv);
 
 	if (ret == 0) {
 		HW_TEST_PASS(kTestName);
@@ -27,3 +28,15 @@ int test_sd()
 	HW_TEST_FAIL(kTestName, "sd_bench returned %d", ret);
 	return ret;
 }
+
+int test_sd()
+{
+	return test_sd_benchmark(false);
+}
+
+#if defined(CONFIG_BOARD_FLYCORE_Q_HW_TEST)
+int hw_test_q_sd()
+{
+	return test_sd_benchmark(true);
+}
+#endif

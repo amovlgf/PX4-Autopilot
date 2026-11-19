@@ -82,6 +82,7 @@ static constexpr canid_t kCanIdExt = (CAN_EFF_FLAG | 0x001ABCDE); /* 29-bit */
 /* Bus timing comes from NuttX FDCAN Kconfig; do not SIOCSCANBITRATE on every open (re-inits controller). */
 static constexpr int kCanRecvTimeoutMs = 800;
 static constexpr unsigned kCanRecvPollSliceUs = 500;
+static constexpr hrt_abstime kCanRxDrainTimeoutUs = 10000;
 static constexpr unsigned kCanDirectionRetries = 3;
 static constexpr unsigned kCanDirectionRetryGapUs = 20000;
 static constexpr canid_t kBenchTxCanIdExt = (CAN_EFF_FLAG | 0x18DAF110); /* 29-bit */
@@ -243,8 +244,11 @@ static int open_can_socket(const char *ifname, bool loopback_enable = false)
 
 	const int flags = fcntl(fd, F_GETFL, 0);
 
-	if (flags >= 0) {
-		(void)fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+	if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+		const int err = -errno;
+		PX4_ERR("Setting CAN socket %s nonblocking failed: %d", ifname, errno);
+		close(fd);
+		return err;
 	}
 
 	return fd;
@@ -286,9 +290,10 @@ static int can_receive_frame(int fd, canid_t expected_id, const uint8_t expected
 {
 	const bool want_ext = (expected_id & CAN_EFF_FLAG) != 0;
 	const canid_t want_id = want_ext ? (expected_id & CAN_EFF_MASK) : (expected_id & CAN_SFF_MASK);
-	const uint64_t deadline_us = static_cast<uint64_t>(timeout_ms) * 1000ULL;
+	const hrt_abstime start = hrt_absolute_time();
+	const hrt_abstime timeout_us = static_cast<hrt_abstime>(timeout_ms) * 1000;
 
-	for (uint64_t spent_us = 0; spent_us < deadline_us; spent_us += kCanRecvPollSliceUs) {
+	while (hrt_elapsed_time(&start) < timeout_us) {
 		struct can_frame rx {};
 		const ssize_t nbytes = read(fd, &rx, sizeof(rx));
 
@@ -343,7 +348,9 @@ static int can_direction_test(const char *tx_if, const char *rx_if, canid_t test
 
 	struct can_frame flush {};
 
-	while (read(rx_fd, &flush, sizeof(flush)) > 0) {}
+	const hrt_abstime drain_start = hrt_absolute_time();
+
+	while (hrt_elapsed_time(&drain_start) < kCanRxDrainTimeoutUs && read(rx_fd, &flush, sizeof(flush)) > 0) {}
 
 	int rx_ret = -ETIMEDOUT;
 	unsigned tries = 0;
@@ -450,14 +457,8 @@ static int can_send_frame_with_deadline(int fd, const struct can_frame &tx, unsi
 
 	return 0;
 }
-#endif
-
-int test_can()
+static void prepare_can_fixture()
 {
-#if defined(__PX4_NUTTX) && defined(CONFIG_NET_CAN)
-	const uint8_t p1[8] {0x55, 0xAA, 0x12, 0x34, 0x7E, 0x80, 0xDE, 0xAD};
-	const uint8_t p2[8] {0xA5, 0x5A, 0x21, 0x43, 0xE7, 0x08, 0xED, 0xDA};
-
 	(void)can_iface_up(kCanIf0);
 	(void)can_iface_up(kCanIf1);
 	usleep(200 * 1000);
@@ -465,21 +466,40 @@ int test_can()
 	can_reinit_iface_if_possible(kCanIf1);
 	usleep(50 * 1000);
 	can_log_diagnostics();
+}
 
-	const int ret_1 = can_direction_test(kCanIf0, kCanIf1, kCanIdExt, p1);
+static int test_can_fixture_direction(bool reverse)
+{
+	static constexpr uint8_t forward_payload[8] {0x55, 0xAA, 0x12, 0x34, 0x7E, 0x80, 0xDE, 0xAD};
+	static constexpr uint8_t reverse_payload[8] {0xA5, 0x5A, 0x21, 0x43, 0xE7, 0x08, 0xED, 0xDA};
+	const char *direction = reverse ? "CAN2->CAN1" : "CAN1->CAN2";
+	const int ret = can_direction_test(reverse ? kCanIf1 : kCanIf0, reverse ? kCanIf0 : kCanIf1,
+					   kCanIdExt, reverse ? reverse_payload : forward_payload);
 
-	if (ret_1 != 0) {
-		HW_TEST_FAIL(kTestName, "CAN1->CAN2 ext failed (%d)", ret_1);
-		return ret_1;
+	if (ret != 0) {
+		HW_TEST_FAIL(kTestName, "%s ext failed (%d)", direction, ret);
+	}
+
+	return ret;
+}
+#endif
+
+int test_can()
+{
+#if defined(__PX4_NUTTX) && defined(CONFIG_NET_CAN)
+	prepare_can_fixture();
+	const int ret_forward = test_can_fixture_direction(false);
+
+	if (ret_forward != 0) {
+		return ret_forward;
 	}
 
 	usleep(120 * 1000);
 
-	const int ret_2 = can_direction_test(kCanIf1, kCanIf0, kCanIdExt, p2);
+	const int ret_reverse = test_can_fixture_direction(true);
 
-	if (ret_2 != 0) {
-		HW_TEST_FAIL(kTestName, "CAN2->CAN1 ext failed (%d)", ret_2);
-		return ret_2;
+	if (ret_reverse != 0) {
+		return ret_reverse;
 	}
 
 	HW_TEST_PASS(kTestName);
@@ -489,6 +509,24 @@ int test_can()
 	return -ENOSYS;
 #endif
 }
+
+#if defined(CONFIG_BOARD_FLYCORE_Q_HW_TEST)
+int hw_test_q_can(unsigned item)
+{
+#if defined(__PX4_NUTTX) && defined(CONFIG_NET_CAN)
+
+	if (item != HW_TEST_Q_CAN1_TO_CAN2 && item != HW_TEST_Q_CAN2_TO_CAN1) {
+		return -EINVAL;
+	}
+
+	prepare_can_fixture();
+	return test_can_fixture_direction(item == HW_TEST_Q_CAN2_TO_CAN1);
+#else
+	(void)item;
+	return -ENOSYS;
+#endif
+}
+#endif
 
 int test_can_ext()
 {
